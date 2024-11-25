@@ -1,6 +1,9 @@
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
 
+const OPSIZE: u16 = 4;
+const ARGSIZE: u16 = 12;
+
 struct VM {
     memory: [u16; MEMORY_MAX],
     r0: u16,
@@ -16,7 +19,7 @@ struct VM {
     rcount: u16,
 }
 
-enum Opcodes {
+enum Opcode {
     OP_BR,   /* branch */
     OP_ADD,  /* add  */
     OP_LD,   /* load */
@@ -53,11 +56,28 @@ impl VM {
             rcount: 0,
         }
     }
+
+    fn decode_instruction(instruction: u16) -> Opcode {
+        // Removes the arguments from the instruction, leaving only the operator
+        let op = instruction >> ARGSIZE;
+        debug_assert_eq!(op, 1);
+        Opcode::OP_ADD
+    }
 }
 
 #[test]
 fn check_memory_len() {
     let vm = VM::new();
+
+    assert_eq!(vm.memory.len(), 65536);
+}
+
+#[test]
+fn check_memory_add_operation() {
+    let vm = VM::new();
+
+    let op = 0b0001000000100000;
+    VM::decode_instruction(op);
 
     assert_eq!(vm.memory.len(), 65536);
 }
