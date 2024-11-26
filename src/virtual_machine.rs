@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
 
@@ -17,7 +18,7 @@ struct VM {
     r6: u16,
     r7: u16,
     rpc: u16,
-    rcond: u16,
+    rcond: FL,
     rcount: u16,
 }
 
@@ -52,6 +53,13 @@ enum Opcode {
     OP_TRAP, /* execute trap */
 }
 
+#[derive(PartialEq, Debug)]
+enum FL {
+    POS = 1 << 0,
+    ZRO = 1 << 1,
+    NEG = 1 << 2,
+}
+
 fn test_print(message: &str) {
     if cfg!(test) {
         println!("DEBUG: {:?}", message);
@@ -72,7 +80,7 @@ impl VM {
             r6: 0,
             r7: 0,
             rpc: 0x300,
-            rcond: 0,
+            rcond: FL::ZRO,
             rcount: 0,
         }
     }
@@ -177,6 +185,13 @@ impl VM {
             }
             _ => panic!("Unrecognized operation code"),
         }
+    }
+    fn update_flags(&mut self, value: u16) {
+        self.rcond = match value.cmp(&0) {
+            Ordering::Less => FL::NEG,
+            Ordering::Equal => FL::ZRO,
+            Ordering::Greater => FL::POS,
+        };
     }
 }
 
