@@ -42,7 +42,11 @@ enum Opcode {
         sr1: u16,
         second_arg: Mode,
     },
-    OpLd,  /* load */
+    /* load */
+    OpLd {
+        dr: u16,
+        offset9: u16,
+    },
     OpSt,  /* store */
     OpJsr, /* jump register */
     /* bitwise and */
@@ -195,13 +199,16 @@ impl VM {
             }
             // LD
             0b0010 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let value = sign_extend(offset9, 9);
+                Opcode::OpLd { dr, offset9: value }
             }
             // LDI
             0b1010 => {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
-                let pcoffset9 = args & 0b0000_0001_1111_1111;
-                let pointer = sign_extend(pcoffset9, 9);
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let pointer = sign_extend(offset9, 9);
                 Opcode::OpLdi {
                     dr,
                     offset9: pointer,
