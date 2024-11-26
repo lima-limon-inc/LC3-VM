@@ -29,27 +29,27 @@ enum AddMode {
 
 #[derive(PartialEq, Debug)]
 enum Opcode {
-    OP_BR, /* branch */
+    OpBr, /* branch */
     /* add  */
-    OP_ADD {
+    OpAdd {
         dr: u16,
         sr1: u16,
         second_arg: AddMode,
     },
-    OP_LD,   /* load */
-    OP_ST,   /* store */
-    OP_JSR,  /* jump register */
-    OP_AND,  /* bitwise and */
-    OP_LDR,  /* load register */
-    OP_STR,  /* store register */
-    OP_RTI,  /* unused */
-    OP_NOT,  /* bitwise not */
-    OP_LDI,  /* load indirect */
-    OP_STI,  /* store indirect */
-    OP_JMP,  /* jump */
-    OP_RES,  /* reserved (unused) */
-    OP_LEA,  /* load effective address */
-    OP_TRAP, /* execute trap */
+    OpLd,   /* load */
+    OpSt,   /* store */
+    OpJsr,  /* jump register */
+    OpAnd,  /* bitwise and */
+    OpLdr,  /* load register */
+    OpStr,  /* store register */
+    OpRti,  /* unused */
+    OpNot,  /* bitwise not */
+    OpLdi,  /* load indirect */
+    OpSti,  /* store indirect */
+    OpJmp,  /* jump */
+    OpRes,  /* reserved (unused) */
+    OpLea,  /* load effective address */
+    OpTrap, /* execute trap */
 }
 
 #[derive(PartialEq, Debug)]
@@ -119,7 +119,7 @@ impl VM {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
 
                 let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
-                Opcode::OP_ADD {
+                Opcode::OpAdd {
                     dr,
                     sr1,
                     second_arg,
@@ -225,7 +225,7 @@ impl VM {
 
     fn execute(&mut self, operation: Opcode) {
         match operation {
-            Opcode::OP_ADD {
+            Opcode::OpAdd {
                 dr,
                 sr1,
                 second_arg,
@@ -272,7 +272,7 @@ mod test {
         let result = vm.decode_instruction(op);
 
         assert_eq!(
-            Opcode::OP_ADD {
+            Opcode::OpAdd {
                 dr: 2,
                 sr1: 3,
                 second_arg: AddMode::REGISTER { sr2: 1 },
@@ -290,7 +290,7 @@ mod test {
         let result = vm.decode_instruction(op);
 
         assert_eq!(
-            Opcode::OP_ADD {
+            Opcode::OpAdd {
                 dr: 5,
                 sr1: 7,
                 second_arg: AddMode::IMMEDIATE { imm5: 2 }
