@@ -58,7 +58,11 @@ enum Opcode {
     // OpLdr, /* load register */
     // OpStr, /* store register */
     // OpRti, /* unused */
-    // OpNot, /* bitwise not */
+    /* bitwise not */
+    OpNot {
+        dr: u16,
+        sr: u16,
+    },
     /* load indirect */
     OpLdi {
         dr: u16,
@@ -221,7 +225,12 @@ impl VM {
             }
             // NOT
             0b1001 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let sr = (args & 0b0000_0001_1100_0000) >> 6;
+                let spec = args & 0b0000_0000_0011_1111;
+
+                debug_assert_eq!(spec, 0b0000_0000_0011_1111);
+                Opcode::OpNot { dr, sr }
             }
             // RTI
             0b1000 => {
