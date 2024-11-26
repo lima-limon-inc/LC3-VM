@@ -186,12 +186,44 @@ impl VM {
             _ => panic!("Unrecognized operation code"),
         }
     }
+
     fn update_flags(&mut self, value: u16) {
         self.rcond = match value.cmp(&0) {
             Ordering::Less => FL::NEG,
             Ordering::Equal => FL::ZRO,
             Ordering::Greater => FL::POS,
         };
+    }
+    fn fetch_value_from_register(&self, reg_num: u16) -> u16 {
+        match reg_num {
+            0 => self.r0,
+            1 => self.r1,
+            2 => self.r2,
+            3 => self.r3,
+            4 => self.r4,
+            5 => self.r5,
+            6 => self.r6,
+            7 => self.r7,
+            8 => self.rpc,
+            10 => self.rcount,
+            _ => panic!("Invalid register"),
+        }
+    }
+
+    fn fetch_register(&mut self, reg_num: u16) -> &mut u16 {
+        match reg_num {
+            0 => &mut self.r0,
+            1 => &mut self.r1,
+            2 => &mut self.r2,
+            3 => &mut self.r3,
+            4 => &mut self.r4,
+            5 => &mut self.r5,
+            6 => &mut self.r6,
+            7 => &mut self.r7,
+            8 => &mut self.rpc,
+            10 => &mut self.rcount,
+            _ => panic!("Invalid register"),
+        }
     }
 }
 
