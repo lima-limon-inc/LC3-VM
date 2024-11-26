@@ -328,6 +328,7 @@ impl VM {
             }
             Opcode::OpLd { dr, addr } => {
                 let value = self.memory_read(addr);
+                self.update_register(dr, value);
             }
             Opcode::OpAnd {
                 dr,
@@ -464,6 +465,17 @@ mod test {
         vm.execute(operation);
         assert_eq!(vm.r1, 8);
         assert_eq!(vm.rcond, FL::POS);
+    }
+
+    #[test]
+    fn test_ld() {
+        let mut vm = VM::new();
+        // LD R7, 42
+        let op = 0b0010111000101010;
+        let operation = vm.decode_instruction(op);
+        vm.r7 = 0;
+
+        assert_eq!(operation, Opcode::OpLd { dr: 7, addr: 42 });
     }
 }
 
