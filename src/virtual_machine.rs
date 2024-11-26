@@ -28,7 +28,7 @@ struct VM {
 }
 
 #[derive(PartialEq, Debug)]
-enum AddMode {
+enum Mode {
     IMMEDIATE { imm5: u16 },
     REGISTER { sr2: u16 },
 }
@@ -40,7 +40,7 @@ enum Opcode {
     OpAdd {
         dr: u16,
         sr1: u16,
-        second_arg: AddMode,
+        second_arg: Mode,
     },
     OpLd,  /* load */
     OpSt,  /* store */
@@ -133,12 +133,12 @@ impl VM {
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
-                        AddMode::REGISTER { sr2: dest_register }
+                        Mode::REGISTER { sr2: dest_register }
                     }
                     1 => {
                         let immediate = args & 0b0000_0000_0001_1111;
                         let immediate = sign_extend(immediate, 5);
-                        AddMode::IMMEDIATE { imm5: immediate }
+                        Mode::IMMEDIATE { imm5: immediate }
                     }
                     _ => panic!("ERROR WHILST PARSING"),
                 };
@@ -271,11 +271,11 @@ impl VM {
             } => {
                 let sr1_val = self.value_from_register(sr1);
                 let second_value = match second_arg {
-                    AddMode::IMMEDIATE { imm5 } => {
+                    Mode::IMMEDIATE { imm5 } => {
                         let value = sign_extend(imm5, 5);
                         value
                     }
-                    AddMode::REGISTER { sr2 } => {
+                    Mode::REGISTER { sr2 } => {
                         let sr2_val = self.value_from_register(sr2);
                         sr2_val
                     }
@@ -317,7 +317,7 @@ mod test {
             Opcode::OpAdd {
                 dr: 2,
                 sr1: 3,
-                second_arg: AddMode::REGISTER { sr2: 1 },
+                second_arg: Mode::REGISTER { sr2: 1 },
             },
             result
         );
@@ -335,7 +335,7 @@ mod test {
             Opcode::OpAdd {
                 dr: 5,
                 sr1: 7,
-                second_arg: AddMode::IMMEDIATE { imm5: 2 }
+                second_arg: Mode::IMMEDIATE { imm5: 2 }
             },
             result
         );
