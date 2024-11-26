@@ -35,7 +35,7 @@ enum Mode {
 
 #[derive(PartialEq, Debug)]
 enum Opcode {
-    OpBr, /* branch */
+    // OpBr, /* branch */
     /* add  */
     OpAdd {
         dr: u16,
@@ -47,29 +47,29 @@ enum Opcode {
         dr: u16,
         offset9: u16,
     },
-    OpSt,  /* store */
-    OpJsr, /* jump register */
+    // OpSt,  /* store */
+    // OpJsr, /* jump register */
     /* bitwise and */
     OpAnd {
         dr: u16,
         sr1: u16,
         second_arg: Mode,
     },
-    OpLdr, /* load register */
-    OpStr, /* store register */
-    OpRti, /* unused */
-    OpNot, /* bitwise not */
+    // OpLdr, /* load register */
+    // OpStr, /* store register */
+    // OpRti, /* unused */
+    // OpNot, /* bitwise not */
     /* load indirect */
     OpLdi {
         dr: u16,
         // NOTE: This value needs to be added to the PC at runtime
         offset9: u16,
     },
-    OpSti,  /* store indirect */
-    OpJmp,  /* jump */
-    OpRes,  /* reserved (unused) */
-    OpLea,  /* load effective address */
-    OpTrap, /* execute trap */
+    // OpSti,  /* store indirect */
+    // OpJmp,  /* jump */
+    // OpRes,  /* reserved (unused) */
+    // OpLea,  /* load effective address */
+    // OpTrap, /* execute trap */
 }
 
 #[derive(PartialEq, Debug)]
@@ -354,7 +354,6 @@ impl VM {
                 // negative, zero, or positive"
                 self.update_register(dr, result);
             }
-            _ => todo!(),
         }
     }
 }
