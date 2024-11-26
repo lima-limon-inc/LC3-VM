@@ -364,6 +364,13 @@ impl VM {
                 // negative, zero, or positive"
                 self.update_register(dr, result);
             }
+
+            Opcode::OpNot { dr, sr } => {
+                let value = self.value_from_register(sr);
+                let notvalue = !value;
+
+                self.update_register(dr, notvalue);
+            }
         }
     }
 }
