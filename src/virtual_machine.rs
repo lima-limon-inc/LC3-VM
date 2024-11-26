@@ -225,6 +225,11 @@ impl VM {
             _ => panic!("Invalid register"),
         }
     }
+    fn execute(&mut self, operation: Opcode) {
+        match operation {
+            _ => todo!(),
+        }
+    }
 }
 
 mod test {
