@@ -204,6 +204,12 @@ impl VM {
         }
     }
 
+    fn update_register(&mut self, register_index: u16, value: u16) {
+        let register = self.get_mut_register(register_index);
+        *register = value;
+        self.update_flags(value);
+    }
+
     fn update_flags(&mut self, value: u16) {
         self.rcond = match value.cmp(&0) {
             Ordering::Less => FL::NEG,
@@ -262,10 +268,8 @@ impl VM {
                 };
                 let result = second_value.wrapping_add(sr1_val);
 
-                let destination = self.get_mut_register(dr);
-                *destination = result;
-
-                self.update_flags(result);
+                self.update_register(dr, result);
+            }
             }
             _ => todo!(),
         }
