@@ -45,7 +45,7 @@ enum Opcode {
     /* load */
     OpLd {
         dr: u16,
-        offset9: u16,
+        addr: u16,
     },
     // OpSt,  /* store */
     // OpJsr, /* jump register */
@@ -202,7 +202,7 @@ impl VM {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let value = sign_extend(offset9, 9);
-                Opcode::OpLd { dr, offset9: value }
+                Opcode::OpLd { dr, addr: value }
             }
             // LDI
             0b1010 => {
@@ -328,6 +328,9 @@ impl VM {
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
+            }
+            Opcode::OpLd { dr, addr } => {
+                let value = self.memory_read(addr);
             }
             Opcode::OpAnd {
                 dr,
