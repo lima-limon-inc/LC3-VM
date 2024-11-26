@@ -4,6 +4,9 @@ const MEMORY_MAX: usize = 2_usize.pow(16);
 const OPSIZE: u16 = 4;
 const ARGSIZE: u16 = 12;
 
+// Bitwise AND the instruction with this to get the arguments
+const ARGUMENTMASK: u16 = 0b0000111111111111;
+
 struct VM {
     memory: [u16; MEMORY_MAX],
     r0: u16,
@@ -19,9 +22,21 @@ struct VM {
     rcount: u16,
 }
 
+#[derive(PartialEq, Debug)]
+enum AddMode {
+    IMMEDIATE { sr2: u16 },
+    REGISTER { imm5: u16 },
+}
+
+#[derive(PartialEq, Debug)]
 enum Opcode {
-    OP_BR,   /* branch */
-    OP_ADD,  /* add  */
+    OP_BR, /* branch */
+    /* add  */
+    OP_ADD {
+        dr: u16,
+        sr1: u16,
+        second_arg: AddMode,
+    },
     OP_LD,   /* load */
     OP_ST,   /* store */
     OP_JSR,  /* jump register */
@@ -36,6 +51,12 @@ enum Opcode {
     OP_RES,  /* reserved (unused) */
     OP_LEA,  /* load effective address */
     OP_TRAP, /* execute trap */
+}
+
+fn test_print(message: &str) {
+    if cfg!(test) {
+        println!("DEBUG: {:?}", message);
+    }
 }
 
 impl VM {
@@ -60,7 +81,13 @@ impl VM {
     fn decode_instruction(instruction: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
         let op = instruction >> ARGSIZE;
+        // Removes the operator from the instruction, leaving only the arguments
+        let args = instruction & ARGUMENTMASK;
 
+        // NOTE: Whilst writing constants inside a code block
+        // is not very orthodox, I believe it remains a good
+        // balance between avoiding magic numbers and keeping
+        // the logic "local".
         match op {
             // BR
             0b0000 => {
@@ -68,7 +95,35 @@ impl VM {
             }
             // ADD
             0b0001 => {
-                todo!()
+                const ADDMODEPOSITION: u16 = 5;
+                const ADDMODEFLAG: u16 = 0b0000000000100000;
+                let mode = (args & ADDMODEFLAG) >> ADDMODEPOSITION;
+
+                test_print(format!("{:?}", mode).as_str());
+                let second_arg = match mode {
+                    0 => {
+                        const IMMEDIATEREGISTERPOS: u16 = 0b0000000000000111;
+                        let dest_register = args & IMMEDIATEREGISTERPOS;
+                        AddMode::IMMEDIATE { sr2: dest_register }
+                    }
+                    1 => {
+                        todo!()
+                    }
+                    _ => panic!("ERROR WHILST PARSING"),
+                };
+
+                const DESTINATIONREG: u16 = 0b0000111000000000;
+                const DESTINATIONREGPOS: u16 = 9;
+                let dr = (args & DESTINATIONREG) >> DESTINATIONREGPOS;
+
+                const SOURCEREG: u16 = 0b0000000111000000;
+                const SOURCEREGPOS: u16 = 6;
+                let sr1 = (args & SOURCEREG) >> SOURCEREGPOS;
+                Opcode::OP_ADD {
+                    dr,
+                    sr1,
+                    second_arg,
+                }
             }
             // AND
             0b0101 => {
@@ -128,9 +183,6 @@ impl VM {
             }
             _ => panic!("Unrecognized operation code"),
         }
-
-        debug_assert_eq!(op, 1);
-        Opcode::OP_ADD
     }
 }
 
@@ -142,11 +194,19 @@ fn check_memory_len() {
 }
 
 #[test]
-fn check_memory_add_operation() {
+fn check_memory_add_operation_reg_mode() {
     let vm = VM::new();
 
-    let op = 0b0001000000100000;
-    VM::decode_instruction(op);
+    //         ADD R2, R3, R1
+    let op = 0b0001010011000001;
+    let result = VM::decode_instruction(op);
 
-    assert_eq!(vm.memory.len(), 65536);
+    assert_eq!(
+        Opcode::OP_ADD {
+            dr: 2,
+            sr1: 3,
+            second_arg: AddMode::IMMEDIATE { sr2: 1 },
+        },
+        result
+    );
 }
