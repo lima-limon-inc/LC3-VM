@@ -88,6 +88,14 @@ impl VM {
         }
     }
 
+    fn memory_read(&self, addr: u16) -> u16 {
+        let addr = addr as usize;
+        *self
+            .memory
+            .get(addr)
+            .expect("OUT OF MEMORY RANGE. Segmentation fault?")
+    }
+
     fn decode_instruction(&self, instruction: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
         let op = instruction >> ARG_SIZE;
