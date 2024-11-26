@@ -95,15 +95,12 @@ impl VM {
             }
             // ADD
             0b0001 => {
-                const ADDMODEPOSITION: u16 = 5;
-                const ADDMODEFLAG: u16 = 0b0000000000100000;
-                let mode = (args & ADDMODEFLAG) >> ADDMODEPOSITION;
+                let mode = (args & 0b0000_0000_0010_0000) >> 5;
 
                 test_print(format!("{:?}", mode).as_str());
                 let second_arg = match mode {
                     0 => {
-                        const IMMEDIATEREGISTERPOS: u16 = 0b0000000000000111;
-                        let dest_register = args & IMMEDIATEREGISTERPOS;
+                        let dest_register = args & 0b0000_0000_0000_0111;
                         AddMode::IMMEDIATE { sr2: dest_register }
                     }
                     1 => {
@@ -112,13 +109,9 @@ impl VM {
                     _ => panic!("ERROR WHILST PARSING"),
                 };
 
-                const DESTINATIONREG: u16 = 0b0000111000000000;
-                const DESTINATIONREGPOS: u16 = 9;
-                let dr = (args & DESTINATIONREG) >> DESTINATIONREGPOS;
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
 
-                const SOURCEREG: u16 = 0b0000000111000000;
-                const SOURCEREGPOS: u16 = 6;
-                let sr1 = (args & SOURCEREG) >> SOURCEREGPOS;
+                let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
                 Opcode::OP_ADD {
                     dr,
                     sr1,
