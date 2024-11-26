@@ -427,6 +427,35 @@ mod test {
         assert_eq!(vm.r5, 12);
         assert_eq!(vm.rcond, FL::POS);
     }
+
+    #[test]
+    fn and_test() {
+        let mut vm = VM::new();
+
+        //         AND R1, R2, R4
+        let op = 0b0101001010000100;
+        let operation = vm.decode_instruction(op);
+        vm.r1 = 0;
+        vm.r2 = 10;
+        vm.r4 = 12;
+
+        assert_eq!(
+            operation,
+            Opcode::OpAnd {
+                dr: 1,
+                sr1: 2,
+                second_arg: Mode::REGISTER { sr2: 4 }
+            }
+        );
+
+        //This is only done to check if the execution correcly changes
+        // the value of rcond and it's not its default value.
+        vm.rcond = FL::NEG;
+
+        vm.execute(operation);
+        assert_eq!(vm.r1, 8);
+        assert_eq!(vm.rcond, FL::POS);
+    }
 }
 
 fn sign_extend(number: u16, bit_count: i32) -> u16 {
