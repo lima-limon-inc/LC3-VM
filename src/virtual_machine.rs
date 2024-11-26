@@ -498,6 +498,21 @@ mod test {
         assert_eq!(vm.r7, 1234);
         assert_eq!(vm.rcond, FL::POS);
     }
+
+    #[test]
+    fn not_test() {
+        let mut vm = VM::new();
+        // NOT R4, R5
+        let op = 0b1001100101111111;
+        let operation = vm.decode_instruction(op);
+
+        vm.r5 = 10;
+        assert_eq!(operation, Opcode::OpNot { dr: 4, sr: 5 });
+
+        vm.execute(operation);
+
+        assert_eq!(0b1111111111110101, vm.r4);
+    }
 }
 
 fn sign_extend(number: u16, bit_count: i32) -> u16 {
