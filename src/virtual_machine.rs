@@ -227,10 +227,6 @@ impl VM {
         }
     }
 
-    fn wrapping_add(a: u16, b: u16) -> u16 {
-        let result = a + b;
-        result
-    }
 
     fn execute(&mut self, operation: Opcode) {
         match operation {
