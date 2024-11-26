@@ -60,6 +60,75 @@ impl VM {
     fn decode_instruction(instruction: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
         let op = instruction >> ARGSIZE;
+
+        match op {
+            // BR
+            0b0000 => {
+                todo!()
+            }
+            // ADD
+            0b0001 => {
+                todo!()
+            }
+            // AND
+            0b0101 => {
+                todo!()
+            }
+            // JMP / RET
+            0b1100 => {
+                todo!()
+            }
+            // JSR / JSRR / RET
+            0b0100 => {
+                todo!()
+            }
+            // LD
+            0b0010 => {
+                todo!()
+            }
+            // LDI
+            0b1010 => {
+                todo!()
+            }
+            // LDR
+            0b0110 => {
+                todo!()
+            }
+            // LEA
+            0b1110 => {
+                todo!()
+            }
+            // NOT
+            0b1001 => {
+                todo!()
+            }
+            // RTI
+            0b1000 => {
+                todo!()
+            }
+            // ST
+            0b0011 => {
+                todo!()
+            }
+            // STI
+            0b1011 => {
+                todo!()
+            }
+            // STR
+            0b0111 => {
+                todo!()
+            }
+            // TRAP
+            0b1111 => {
+                todo!()
+            }
+            // Illegal?
+            0b1101 => {
+                todo!()
+            }
+            _ => panic!("Unrecognized operation code"),
+        }
+
         debug_assert_eq!(op, 1);
         Opcode::OP_ADD
     }
