@@ -103,7 +103,9 @@ impl VM {
                         AddMode::REGISTER { sr2: dest_register }
                     }
                     1 => {
-                        todo!()
+                        let immediate = args & 0b0000_0000_0001_1111;
+                        let immediate = sign_extend(immediate, 5);
+                        AddMode::IMMEDIATE { imm5: immediate }
                     }
                     _ => panic!("ERROR WHILST PARSING"),
                 };
