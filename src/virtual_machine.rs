@@ -36,14 +36,14 @@ enum Opcode {
         sr1: u16,
         second_arg: AddMode,
     },
-    OpLd,   /* load */
-    OpSt,   /* store */
-    OpJsr,  /* jump register */
-    OpAnd,  /* bitwise and */
-    OpLdr,  /* load register */
-    OpStr,  /* store register */
-    OpRti,  /* unused */
-    OpNot,  /* bitwise not */
+    OpLd,  /* load */
+    OpSt,  /* store */
+    OpJsr, /* jump register */
+    OpAnd, /* bitwise and */
+    OpLdr, /* load register */
+    OpStr, /* store register */
+    OpRti, /* unused */
+    OpNot, /* bitwise not */
     /* load indirect */
     OpLdi {
         dr: u16,
