@@ -23,8 +23,8 @@ struct VM {
 
 #[derive(PartialEq, Debug)]
 enum AddMode {
-    IMMEDIATE { sr2: u16 },
-    REGISTER { imm5: u16 },
+    IMMEDIATE { imm5: u16 },
+    REGISTER { sr2: u16 },
 }
 
 #[derive(PartialEq, Debug)]
@@ -100,7 +100,7 @@ impl VM {
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
-                        AddMode::IMMEDIATE { sr2: dest_register }
+                        AddMode::REGISTER { sr2: dest_register }
                     }
                     1 => {
                         todo!()
@@ -197,7 +197,7 @@ fn check_memory_add_operation_reg_mode() {
         Opcode::OP_ADD {
             dr: 2,
             sr1: 3,
-            second_arg: AddMode::IMMEDIATE { sr2: 1 },
+            second_arg: AddMode::REGISTER { sr2: 1 },
         },
         result
     );
