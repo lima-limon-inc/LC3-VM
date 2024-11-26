@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
 
@@ -17,14 +18,13 @@ struct VM {
     r6: u16,
     r7: u16,
     rpc: u16,
-    rcond: u16,
-    rcount: u16,
+    rcond: FL,
 }
 
 #[derive(PartialEq, Debug)]
 enum AddMode {
-    IMMEDIATE { sr2: u16 },
-    REGISTER { imm5: u16 },
+    IMMEDIATE { imm5: u16 },
+    REGISTER { sr2: u16 },
 }
 
 #[derive(PartialEq, Debug)]
@@ -52,6 +52,13 @@ enum Opcode {
     OP_TRAP, /* execute trap */
 }
 
+#[derive(PartialEq, Debug)]
+enum FL {
+    POS = 1 << 0,
+    ZRO = 1 << 1,
+    NEG = 1 << 2,
+}
+
 fn test_print(message: &str) {
     if cfg!(test) {
         println!("DEBUG: {:?}", message);
@@ -72,8 +79,7 @@ impl VM {
             r6: 0,
             r7: 0,
             rpc: 0x300,
-            rcond: 0,
-            rcount: 0,
+            rcond: FL::ZRO,
         }
     }
 
@@ -100,10 +106,12 @@ impl VM {
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
-                        AddMode::IMMEDIATE { sr2: dest_register }
+                        AddMode::REGISTER { sr2: dest_register }
                     }
                     1 => {
-                        todo!()
+                        let immediate = args & 0b0000_0000_0001_1111;
+                        let immediate = sign_extend(immediate, 5);
+                        AddMode::IMMEDIATE { imm5: immediate }
                     }
                     _ => panic!("ERROR WHILST PARSING"),
                 };
@@ -176,29 +184,158 @@ impl VM {
             _ => panic!("Unrecognized operation code"),
         }
     }
+
+    fn update_flags(&mut self, value: u16) {
+        self.rcond = match value.cmp(&0) {
+            Ordering::Less => FL::NEG,
+            Ordering::Equal => FL::ZRO,
+            Ordering::Greater => FL::POS,
+        };
+    }
+
+    fn value_from_register(&self, reg_num: u16) -> u16 {
+        match reg_num {
+            0 => self.r0,
+            1 => self.r1,
+            2 => self.r2,
+            3 => self.r3,
+            4 => self.r4,
+            5 => self.r5,
+            6 => self.r6,
+            7 => self.r7,
+            8 => self.rpc,
+            _ => panic!("Invalid register"),
+        }
+    }
+
+    fn get_mut_register(&mut self, reg_num: u16) -> &mut u16 {
+        match reg_num {
+            0 => &mut self.r0,
+            1 => &mut self.r1,
+            2 => &mut self.r2,
+            3 => &mut self.r3,
+            4 => &mut self.r4,
+            5 => &mut self.r5,
+            6 => &mut self.r6,
+            7 => &mut self.r7,
+            8 => &mut self.rpc,
+            _ => panic!("Invalid register"),
+        }
+    }
+
+    fn execute(&mut self, operation: Opcode) {
+        match operation {
+            Opcode::OP_ADD {
+                dr,
+                sr1,
+                second_arg,
+            } => {
+                let sr1_val = self.value_from_register(sr1);
+                let second_value = match second_arg {
+                    AddMode::IMMEDIATE { imm5 } => {
+                        let value = sign_extend(imm5, 5);
+                        value
+                    }
+                    AddMode::REGISTER { sr2 } => {
+                        let sr2_val = self.value_from_register(sr2);
+                        sr2_val
+                    }
+                };
+                let result = second_value.wrapping_add(sr1_val);
+
+                let destination = self.get_mut_register(dr);
+                *destination = result;
+
+                self.update_flags(result);
+            }
+            _ => todo!(),
+        }
+    }
 }
 
-#[test]
-fn check_memory_len() {
-    let vm = VM::new();
+mod test {
+    use super::*;
 
-    assert_eq!(vm.memory.len(), 65536);
+    #[test]
+    fn check_memory_len() {
+        let vm = VM::new();
+
+        assert_eq!(vm.memory.len(), 65536);
+    }
+
+    #[test]
+    fn check_memory_add_operation_reg_mode() {
+        let vm = VM::new();
+
+        //         ADD R2, R3, R1
+        let op = 0b0001_0100_1100_0001;
+        let result = VM::decode_instruction(op);
+
+        assert_eq!(
+            Opcode::OP_ADD {
+                dr: 2,
+                sr1: 3,
+                second_arg: AddMode::REGISTER { sr2: 1 },
+            },
+            result
+        );
+    }
+
+    #[test]
+    fn check_memory_add_operation_imm_mode() {
+        let vm = VM::new();
+
+        //         ADD R5, R7, 2
+        let op = 0b0001_1011_1110_0010;
+        let result = VM::decode_instruction(op);
+
+        assert_eq!(
+            Opcode::OP_ADD {
+                dr: 5,
+                sr1: 7,
+                second_arg: AddMode::IMMEDIATE { imm5: 2 }
+            },
+            result
+        );
+    }
+
+    #[test]
+    fn sign_extension() {
+        let value = sign_extend(0b11111, 5);
+        assert_eq!(value, 0b1111111111111111);
+    }
+
+    #[test]
+    fn add_operation() {
+        //         ADD R2, R3, R1
+        let op = 0b0001010011000001;
+        let operation = VM::decode_instruction(op);
+
+        let mut vm = VM::new();
+        vm.r2 = 0;
+        vm.r3 = 10;
+        vm.r1 = 15;
+        vm.execute(operation);
+        assert_eq!(vm.r2, 25);
+        assert_eq!(vm.rcond, FL::POS);
+
+        //         ADD R5, R7, 2
+        let op = 0b0001101111100010;
+        let operation = VM::decode_instruction(op);
+
+        let mut vm = VM::new();
+        vm.r5 = 0;
+        vm.r7 = 10;
+        vm.execute(operation);
+        assert_eq!(vm.r5, 12);
+        assert_eq!(vm.rcond, FL::POS);
+    }
 }
 
-#[test]
-fn check_memory_add_operation_reg_mode() {
-    let vm = VM::new();
-
-    //         ADD R2, R3, R1
-    let op = 0b0001010011000001;
-    let result = VM::decode_instruction(op);
-
-    assert_eq!(
-        Opcode::OP_ADD {
-            dr: 2,
-            sr1: 3,
-            second_arg: AddMode::IMMEDIATE { sr2: 1 },
-        },
-        result
-    );
+fn sign_extend(number: u16, bit_count: i32) -> u16 {
+    let mut result = number;
+    if (number >> (bit_count - 1) & 1) == 1 {
+        result = number | (u16::MAX << bit_count)
+    };
+    result.into()
 }
