@@ -270,6 +270,11 @@ impl VM {
 
                 self.update_register(dr, result);
             }
+            Opcode::OpLdi { dr, offset } => {
+                let pointer = self.rpc + offset;
+                let addr = self.memory_read(pointer);
+                let value = self.memory_read(addr);
+                self.update_register(dr, value);
             }
             _ => todo!(),
         }
