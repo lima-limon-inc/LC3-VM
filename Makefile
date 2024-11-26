@@ -14,4 +14,7 @@ run:
 test:
 	cargo test
 
-.PHONY: run build test
+clean:
+	./laser-comp -c *
+
+.PHONY: run build test clean
