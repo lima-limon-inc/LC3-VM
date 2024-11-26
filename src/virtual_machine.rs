@@ -45,7 +45,12 @@ enum Opcode {
     OpLd,  /* load */
     OpSt,  /* store */
     OpJsr, /* jump register */
-    OpAnd, /* bitwise and */
+    /* bitwise and */
+    OpAnd {
+        dr: u16,
+        sr1: u16,
+        second_arg: Mode,
+    },
     OpLdr, /* load register */
     OpStr, /* store register */
     OpRti, /* unused */
@@ -146,6 +151,7 @@ impl VM {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
 
                 let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
+
                 Opcode::OpAdd {
                     dr,
                     sr1,
@@ -154,7 +160,30 @@ impl VM {
             }
             // AND
             0b0101 => {
-                todo!()
+                let mode = (args & 0b0000_0000_0010_0000) >> 5;
+
+                test_print(format!("{:?}", mode).as_str());
+                let second_arg = match mode {
+                    0 => {
+                        let dest_register = args & 0b0000_0000_0000_0111;
+                        Mode::REGISTER { sr2: dest_register }
+                    }
+                    1 => {
+                        let immediate = args & 0b0000_0000_0001_1111;
+                        let immediate = sign_extend(immediate, 5);
+                        Mode::IMMEDIATE { imm5: immediate }
+                    }
+                    _ => panic!("ERROR WHILST PARSING"),
+                };
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+
+                let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
+
+                Opcode::OpAnd {
+                    dr,
+                    sr1,
+                    second_arg,
+                }
             }
             // JMP / RET
             0b1100 => {
