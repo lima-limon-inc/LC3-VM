@@ -44,7 +44,12 @@ enum Opcode {
     OpStr,  /* store register */
     OpRti,  /* unused */
     OpNot,  /* bitwise not */
-    OpLdi,  /* load indirect */
+    /* load indirect */
+    OpLdi {
+        dr: u16,
+        // NOTE: This value needs to be added to the PC at runtime
+        offset: u16,
+    },
     OpSti,  /* store indirect */
     OpJmp,  /* jump */
     OpRes,  /* reserved (unused) */
@@ -143,7 +148,13 @@ impl VM {
             }
             // LDI
             0b1010 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let pcoffset9 = args & 0b0000_0001_1111_1111;
+                let pointer = sign_extend(pcoffset9, 9);
+                Opcode::OpLdi {
+                    dr,
+                    offset: pointer,
+                }
             }
             // LDR
             0b0110 => {
