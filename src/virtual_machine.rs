@@ -193,7 +193,7 @@ impl VM {
         };
     }
 
-    fn fetch_value_from_register(&self, reg_num: u16) -> u16 {
+    fn value_from_register(&self, reg_num: u16) -> u16 {
         match reg_num {
             0 => self.r0,
             1 => self.r1,
@@ -208,7 +208,7 @@ impl VM {
         }
     }
 
-    fn fetch_register(&mut self, reg_num: u16) -> &mut u16 {
+    fn get_mut_register(&mut self, reg_num: u16) -> &mut u16 {
         match reg_num {
             0 => &mut self.r0,
             1 => &mut self.r1,
@@ -230,20 +230,20 @@ impl VM {
                 sr1,
                 second_arg,
             } => {
-                let sr1_val = self.fetch_value_from_register(sr1);
+                let sr1_val = self.value_from_register(sr1);
                 let second_value = match second_arg {
                     AddMode::IMMEDIATE { imm5 } => {
                         let value = sign_extend(imm5, 5);
                         value
                     }
                     AddMode::REGISTER { sr2 } => {
-                        let sr2_val = self.fetch_value_from_register(sr2);
+                        let sr2_val = self.value_from_register(sr2);
                         sr2_val
                     }
                 };
                 let result = second_value.wrapping_add(sr1_val);
 
-                let destination = self.fetch_register(dr);
+                let destination = self.get_mut_register(dr);
                 *destination = result;
 
                 self.update_flags(result);
