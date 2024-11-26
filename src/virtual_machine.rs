@@ -5,7 +5,13 @@ const MEMORY_MAX: usize = 2_usize.pow(16);
 const OP_SIZE: u16 = 4;
 const ARG_SIZE: u16 = 12;
 
-const ARGUMENT_MASK: u16 = 0b0000111111111111;
+const ARGUMENT_MASK: u16 = 0b0000_1111_1111_1111;
+
+// Keyboard status register
+const MR_KBSR: u16 = 0b1111_1110_0000_0000;
+
+// Keyboard data register
+const MR_KBDR: u16 = 0b1111_1110_0000_0010;
 
 struct VM {
     memory: [u16; MEMORY_MAX],
@@ -89,11 +95,19 @@ impl VM {
     }
 
     fn memory_read(&self, addr: u16) -> u16 {
-        let addr = addr as usize;
-        *self
-            .memory
-            .get(addr)
-            .expect("OUT OF MEMORY RANGE. Segmentation fault?")
+        // let addr = addr as usize;
+        match addr {
+            MR_KBSR => {
+                todo!()
+            }
+            _ => {
+                let addr = addr as usize;
+                *self
+                    .memory
+                    .get(addr)
+                    .expect("OUT OF MEMORY RANGE. Segmentation fault?")
+            }
+        }
     }
 
     fn decode_instruction(&self, instruction: u16) -> Opcode {
