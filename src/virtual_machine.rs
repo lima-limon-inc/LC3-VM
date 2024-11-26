@@ -319,6 +319,31 @@ impl VM {
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
+            Opcode::OpAnd {
+                dr,
+                sr1,
+                second_arg,
+            } => {
+                let sr1_val = self.value_from_register(sr1);
+                let second_value = match second_arg {
+                    Mode::IMMEDIATE { imm5 } => {
+                        let value = sign_extend(imm5, 5);
+                        value
+                    }
+                    Mode::REGISTER { sr2 } => {
+                        let sr2_val = self.value_from_register(sr2);
+                        sr2_val
+                    }
+                };
+
+                let result = sr1_val & second_value;
+
+                //TODO: Should I do something about "he condition
+                // codes are set, based on whether the binary value
+                // produced, taken as a 2’s complement integer, is
+                // negative, zero, or positive"
+                self.update_register(dr, result);
+            }
             _ => todo!(),
         }
     }
