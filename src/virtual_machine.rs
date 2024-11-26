@@ -83,7 +83,7 @@ impl VM {
         }
     }
 
-    fn decode_instruction(instruction: u16) -> Opcode {
+    fn decode_instruction(&self, instruction: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
         let op = instruction >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments
@@ -269,7 +269,7 @@ mod test {
 
         //         ADD R2, R3, R1
         let op = 0b0001_0100_1100_0001;
-        let result = VM::decode_instruction(op);
+        let result = vm.decode_instruction(op);
 
         assert_eq!(
             Opcode::OP_ADD {
@@ -287,7 +287,7 @@ mod test {
 
         //         ADD R5, R7, 2
         let op = 0b0001_1011_1110_0010;
-        let result = VM::decode_instruction(op);
+        let result = vm.decode_instruction(op);
 
         assert_eq!(
             Opcode::OP_ADD {
@@ -308,10 +308,11 @@ mod test {
     #[test]
     fn add_operation() {
         //         ADD R2, R3, R1
-        let op = 0b0001010011000001;
-        let operation = VM::decode_instruction(op);
-
         let mut vm = VM::new();
+
+        let op = 0b0001010011000001;
+        let operation = vm.decode_instruction(op);
+
         vm.r2 = 0;
         vm.r3 = 10;
         vm.r1 = 15;
@@ -321,7 +322,7 @@ mod test {
 
         //         ADD R5, R7, 2
         let op = 0b0001101111100010;
-        let operation = VM::decode_instruction(op);
+        let operation = vm.decode_instruction(op);
 
         let mut vm = VM::new();
         vm.r5 = 0;
