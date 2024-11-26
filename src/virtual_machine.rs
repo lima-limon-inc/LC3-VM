@@ -59,7 +59,7 @@ enum Opcode {
     OpLdi {
         dr: u16,
         // NOTE: This value needs to be added to the PC at runtime
-        offset: u16,
+        offset9: u16,
     },
     OpSti,  /* store indirect */
     OpJmp,  /* jump */
@@ -204,7 +204,7 @@ impl VM {
                 let pointer = sign_extend(pcoffset9, 9);
                 Opcode::OpLdi {
                     dr,
-                    offset: pointer,
+                    offset9: pointer,
                 }
             }
             // LDR
@@ -313,7 +313,10 @@ impl VM {
 
                 self.update_register(dr, result);
             }
-            Opcode::OpLdi { dr, offset } => {
+            Opcode::OpLdi {
+                dr,
+                offset9: offset,
+            } => {
                 let pointer = self.rpc + offset;
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
