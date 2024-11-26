@@ -268,7 +268,7 @@ mod test {
         let vm = VM::new();
 
         //         ADD R2, R3, R1
-        let op = 0b0001010011000001;
+        let op = 0b0001_0100_1100_0001;
         let result = VM::decode_instruction(op);
 
         assert_eq!(
@@ -286,7 +286,7 @@ mod test {
         let vm = VM::new();
 
         //         ADD R5, R7, 2
-        let op = 0b0001101111100010;
+        let op = 0b0001_1011_1110_0010;
         let result = VM::decode_instruction(op);
 
         assert_eq!(
