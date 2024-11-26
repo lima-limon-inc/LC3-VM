@@ -1,11 +1,10 @@
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
 
-const OPSIZE: u16 = 4;
-const ARGSIZE: u16 = 12;
+const OP_SIZE: u16 = 4;
+const ARG_SIZE: u16 = 12;
 
-// Bitwise AND the instruction with this to get the arguments
-const ARGUMENTMASK: u16 = 0b0000111111111111;
+const ARGUMENT_MASK: u16 = 0b0000111111111111;
 
 struct VM {
     memory: [u16; MEMORY_MAX],
@@ -80,9 +79,9 @@ impl VM {
 
     fn decode_instruction(instruction: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
-        let op = instruction >> ARGSIZE;
+        let op = instruction >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments
-        let args = instruction & ARGUMENTMASK;
+        let args = instruction & ARGUMENT_MASK;
 
         // NOTE: Whilst writing constants inside a code block
         // is not very orthodox, I believe it remains a good
