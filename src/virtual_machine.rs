@@ -180,27 +180,65 @@ impl VM {
     }
 }
 
-#[test]
-fn check_memory_len() {
-    let vm = VM::new();
+mod test {
+    use super::*;
 
-    assert_eq!(vm.memory.len(), 65536);
+    #[test]
+    fn check_memory_len() {
+        let vm = VM::new();
+
+        assert_eq!(vm.memory.len(), 65536);
+    }
+
+    #[test]
+    fn check_memory_add_operation_reg_mode() {
+        let vm = VM::new();
+
+        //         ADD R2, R3, R1
+        let op = 0b0001010011000001;
+        let result = VM::decode_instruction(op);
+
+        assert_eq!(
+            Opcode::OP_ADD {
+                dr: 2,
+                sr1: 3,
+                second_arg: AddMode::REGISTER { sr2: 1 },
+            },
+            result
+        );
+    }
+
+    #[test]
+    fn check_memory_add_operation_imm_mode() {
+        let vm = VM::new();
+
+        //         ADD R5, R7, 2
+        let op = 0b0001101111100010;
+        let result = VM::decode_instruction(op);
+
+        assert_eq!(
+            Opcode::OP_ADD {
+                dr: 5,
+                sr1: 7,
+                second_arg: AddMode::IMMEDIATE { imm5: 2 }
+            },
+            result
+        );
+    }
+
+    #[test]
+    fn sign_extension() {
+        let value = sign_extend(0b11111, 5);
+        assert_eq!(value, 0b1111111111111111);
+    }
+
+    // 0001001000100010 |    3 | ADD R1, R0, 2
 }
 
-#[test]
-fn check_memory_add_operation_reg_mode() {
-    let vm = VM::new();
-
-    //         ADD R2, R3, R1
-    let op = 0b0001010011000001;
-    let result = VM::decode_instruction(op);
-
-    assert_eq!(
-        Opcode::OP_ADD {
-            dr: 2,
-            sr1: 3,
-            second_arg: AddMode::REGISTER { sr2: 1 },
-        },
-        result
-    );
+fn sign_extend(number: u16, bit_count: i32) -> u16 {
+    let mut result = number;
+    if (number >> (bit_count - 1) & 1) == 1 {
+        result = number | (u16::MAX << bit_count)
+    };
+    result.into()
 }
