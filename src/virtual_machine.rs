@@ -19,7 +19,6 @@ struct VM {
     r7: u16,
     rpc: u16,
     rcond: FL,
-    rcount: u16,
 }
 
 #[derive(PartialEq, Debug)]
@@ -81,7 +80,6 @@ impl VM {
             r7: 0,
             rpc: 0x300,
             rcond: FL::ZRO,
-            rcount: 0,
         }
     }
 
@@ -206,7 +204,6 @@ impl VM {
             6 => self.r6,
             7 => self.r7,
             8 => self.rpc,
-            10 => self.rcount,
             _ => panic!("Invalid register"),
         }
     }
@@ -222,11 +219,9 @@ impl VM {
             6 => &mut self.r6,
             7 => &mut self.r7,
             8 => &mut self.rpc,
-            10 => &mut self.rcount,
             _ => panic!("Invalid register"),
         }
     }
-
 
     fn execute(&mut self, operation: Opcode) {
         match operation {
