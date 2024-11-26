@@ -492,6 +492,11 @@ mod test {
         vm.r7 = 0;
 
         assert_eq!(operation, Opcode::OpLd { dr: 7, addr: 42 });
+
+        vm.memory[42] = 1234;
+        vm.execute(operation);
+        assert_eq!(vm.r7, 1234);
+        assert_eq!(vm.rcond, FL::POS);
     }
 }
 
