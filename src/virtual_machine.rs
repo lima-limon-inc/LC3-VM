@@ -194,6 +194,7 @@ impl VM {
             Ordering::Greater => FL::POS,
         };
     }
+
     fn fetch_value_from_register(&self, reg_num: u16) -> u16 {
         match reg_num {
             0 => self.r0,
@@ -225,8 +226,33 @@ impl VM {
             _ => panic!("Invalid register"),
         }
     }
+
+    fn wrapping_add(a: u16, b: u16) -> u16 {
+        let result = a + b;
+        result
+    }
+
     fn execute(&mut self, operation: Opcode) {
         match operation {
+            // TODO I'd like to pattern match the second arg as well
+            Opcode::OP_ADD {
+                dr,
+                sr1,
+                second_arg,
+            } => {
+                let sr1_val = self.fetch_value_from_register(sr1);
+                let result = match second_arg {
+                    AddMode::IMMEDIATE { imm5 } => todo!(),
+                    AddMode::REGISTER { sr2 } => {
+                        let sr2_val = self.fetch_value_from_register(sr2);
+                        sr2_val.wrapping_add(sr1_val)
+                    }
+                };
+                let destination = self.fetch_register(dr);
+                *destination = result;
+
+                self.update_flags(result);
+            }
             _ => todo!(),
         }
     }
@@ -282,6 +308,21 @@ mod test {
     fn sign_extension() {
         let value = sign_extend(0b11111, 5);
         assert_eq!(value, 0b1111111111111111);
+    }
+
+    #[test]
+    fn add_operation() {
+        //         ADD R2, R3, R1
+        let op = 0b0001010011000001;
+        let result = VM::decode_instruction(op);
+
+        let mut vm = VM::new();
+        vm.r2 = 0;
+        vm.r3 = 10;
+        vm.r1 = 15;
+        vm.execute(result);
+        assert_eq!(vm.r2, 25);
+        assert_eq!(vm.rcond, FL::POS);
     }
 
     // 0001001000100010 |    3 | ADD R1, R0, 2
