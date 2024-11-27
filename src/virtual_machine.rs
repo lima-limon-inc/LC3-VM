@@ -47,7 +47,7 @@ enum Opcode {
         dr: u16,
         addr: u16,
     },
-    /* store */
+    /* store register */
     OpStr {
         sr: u16,
         base_reg: u16,
@@ -66,7 +66,11 @@ enum Opcode {
         base_r: u16,
         offset: u16,
     },
-    // OpStr, /* store register */
+    /* store  */
+    OpSt {
+        sr: u16,
+        offset: u16,
+    },
     // OpRti, /* unused */
     /* bitwise not */
     OpNot {
@@ -261,7 +265,10 @@ impl VM {
             }
             // ST
             0b0011 => {
-                todo!()
+                let sr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let offset = sign_extend(offset9, 9);
+                Opcode::OpSt { sr, offset }
             }
             // STI
             0b1011 => {
