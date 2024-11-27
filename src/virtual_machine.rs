@@ -60,7 +60,12 @@ enum Opcode {
         sr1: u16,
         second_arg: Mode,
     },
-    // OpLdr, /* load register */
+    /* load register */
+    OpLdr {
+        dr: u16,
+        base_r: u16,
+        offset: u16,
+    },
     // OpStr, /* store register */
     // OpRti, /* unused */
     /* bitwise not */
@@ -231,7 +236,11 @@ impl VM {
             }
             // LDR
             0b0110 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let base_r = (args & 0b0000_0001_1100_0000) >> 6;
+                let offset6 = args & 0b0000_0000_0011_1111;
+                let offset = sign_extend(offset6, 6);
+                Opcode::OpLdr { dr, base_r, offset }
             }
             // LEA
             0b1110 => {
