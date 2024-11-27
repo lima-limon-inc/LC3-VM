@@ -71,7 +71,8 @@ enum Opcode {
         sr: u16,
         offset: u16,
     },
-    OpRti, /* unused */
+    /* unused */
+    OpRti,
     /* bitwise not */
     OpNot {
         dr: u16,
@@ -89,7 +90,8 @@ enum Opcode {
         offset: u16,
     },
     // OpJmp,  /* jump */
-    // OpRes,  /* reserved (unused) */
+    /* reserved (unused) */
+    OpRes,
     // OpLea,  /* load effective address */
     // OpTrap, /* execute trap */
 }
@@ -291,10 +293,8 @@ impl VM {
             0b1111 => {
                 todo!()
             }
-            // Illegal?
-            0b1101 => {
-                todo!()
-            }
+            // Reserved
+            0b1101 => Opcode::OpRes,
             _ => panic!("Unrecognized operation code"),
         }
     }
