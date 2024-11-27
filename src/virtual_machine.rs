@@ -428,6 +428,11 @@ impl VM {
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
+            Opcode::OpSt { sr, offset } => {
+                let value = self.value_from_register(sr);
+                let addr = self.rpc + offset;
+                self.memory_write(addr, value);
+            }
         }
     }
 }
