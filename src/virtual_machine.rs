@@ -478,6 +478,10 @@ impl VM {
                     self.rpc = addr;
                 }
             }
+            Opcode::Jmp { base_r } => {
+                let addr = self.value_from_register(base_r);
+                self.rpc = addr;
+            }
         }
     }
 }
