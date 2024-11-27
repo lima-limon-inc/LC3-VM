@@ -204,11 +204,11 @@ impl VM {
         }
     }
 
-    fn decode_instruction(&self, instruction: u16) -> Opcode {
+    fn decode_instruction(&self, binary_repr: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
-        let op = instruction >> ARG_SIZE;
+        let op = binary_repr >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments
-        let args = instruction & ARGUMENT_MASK;
+        let args = binary_repr & ARGUMENT_MASK;
 
         // NOTE: Whilst writing constants inside a code block
         // is not very orthodox, I believe it remains a good
