@@ -92,7 +92,11 @@ enum Opcode {
     // OpJmp,  /* jump */
     /* reserved (unused) */
     OpRes,
-    // OpLea,  /* load effective address */
+    /* load effective address */
+    OpLea {
+        dr: u16,
+        offset: u16,
+    },
     // OpTrap, /* execute trap */
 }
 
@@ -250,7 +254,10 @@ impl VM {
             }
             // LEA
             0b1110 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let offset = sign_extend(offset9, 9);
+                Opcode::OpLea { dr, offset }
             }
             // NOT
             0b1001 => {
