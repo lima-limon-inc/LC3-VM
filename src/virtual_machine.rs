@@ -567,7 +567,14 @@ impl VM {
                     }
                 }
             }
-            Opcode::Trap { code } => {}
+            Opcode::Trap { code } => match code {
+                TrapCode::Getc => {}
+                TrapCode::Out => {}
+                TrapCode::Puts => {}
+                TrapCode::In => {}
+                TrapCode::Putsp => {}
+                TrapCode::Halt => {}
+            },
         }
     }
 }
