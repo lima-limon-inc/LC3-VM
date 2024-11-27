@@ -180,23 +180,24 @@ impl VM {
     }
 
     fn load_bytes(&mut self, bytes: &[u8]) {
-        let instructions: [u16; MEMORY_MAX] = bytes
-            .chunks(2)
-            .map(|halves| {
-                let first_half = halves.get(0).unwrap();
-                let second_half = halves.get(1).unwrap();
-                let instruction = u16::from_be_bytes([*first_half, *second_half]);
-                instruction
-            })
-            .collect::<Vec<u16>>()
-            .try_into()
-            .unwrap();
+        let mut instructions: [u16; MEMORY_MAX] = [0; MEMORY_MAX];
 
-        self.memory = instructions;
+        for (index, byte) in bytes.chunks(2).enumerate() {
+            let first_half = byte.get(0).unwrap();
+            let second_half = byte.get(1).unwrap();
+            let instruction = u16::from_be_bytes([*first_half, *second_half]);
+            instructions[index] = instruction;
+        }
+
+        // println!("DONE ",);
+        // for instruction in instructions {
+        //     println!("{}", instruction);
+        // }
     }
 
     pub fn load_program(&mut self, path: &str) -> Result<(), Error> {
         let bytes = &std::fs::read(path)?;
+        self.load_bytes(bytes);
         Ok(())
     }
 
