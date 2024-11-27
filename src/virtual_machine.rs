@@ -511,7 +511,7 @@ impl VM {
             }
             Opcode::Br { n, z, p, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
-                if (n && self.rcond == FL::POS)
+                if (n && self.rcond == FL::NEG)
                     || (z && self.rcond == FL::ZRO)
                     || (p && self.rcond == FL::POS)
                 {
