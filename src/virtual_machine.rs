@@ -71,7 +71,7 @@ enum Opcode {
         sr: u16,
         offset: u16,
     },
-    // OpRti, /* unused */
+    OpRti, /* unused */
     /* bitwise not */
     OpNot {
         dr: u16,
@@ -260,9 +260,7 @@ impl VM {
                 Opcode::OpNot { dr, sr }
             }
             // RTI
-            0b1000 => {
-                todo!()
-            }
+            0b1000 => Opcode::OpRti,
             // ST
             0b0011 => {
                 let sr = (args & 0b0000_1110_0000_0000) >> 9;
