@@ -440,6 +440,10 @@ impl VM {
             }
             Opcode::OpRti => panic!("RTI instruction not supported."),
             Opcode::OpRes => panic!("RESERVED instruction not supported."),
+            Opcode::OpLea { dr, offset } => {
+                let addr = self.rpc + offset;
+                self.update_register(dr, addr);
+            }
         }
     }
 }
