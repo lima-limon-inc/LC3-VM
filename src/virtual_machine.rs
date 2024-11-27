@@ -95,7 +95,10 @@ enum Opcode {
         sr: u16,
         offset: u16,
     },
-    // Jmp,  /* jump */
+    /* jump */
+    Jmp {
+        base_r: u16,
+    },
     /* reserved (unused) */
     Res,
     /* load effective address */
@@ -245,7 +248,8 @@ impl VM {
             }
             // JMP / RET
             0b1100 => {
-                todo!()
+                let base_r = (args & 0b0000_0001_1100_0000) >> 6;
+                Opcode::Jmp { base_r }
             }
             // JSR / JSRR / RET
             0b0100 => {
