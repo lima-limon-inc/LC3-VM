@@ -465,6 +465,15 @@ impl VM {
                 let addr = self.rpc.wrapping_add(offset);
                 self.update_register(dr, addr);
             }
+            Opcode::Br { n, z, p, offset } => {
+                let addr = self.rpc.wrapping_add(offset);
+                if (n && self.rcond == FL::POS)
+                    || (z && self.rcond == FL::ZRO)
+                    || (p && self.rcond == FL::POS)
+                {
+                    self.rpc = addr;
+                }
+            }
         }
     }
 }
