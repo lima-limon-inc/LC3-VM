@@ -524,6 +524,7 @@ impl VM {
                     }
                 }
             }
+            Opcode::Trap { code } => {}
         }
     }
 }
