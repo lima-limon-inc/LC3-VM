@@ -498,6 +498,16 @@ impl VM {
                 let addr = self.value_from_register(base_r);
                 self.rpc = addr;
             }
+            Opcode::Jsr { addr } => {
+                self.r7 = self.rpc;
+                self.rpc = match addr {
+                    Mode::REGISTER { sr2 } => sr2,
+                    Mode::IMMEDIATE { value } => {
+                        let new_pos = self.rpc.wrapping_add(value);
+                        new_pos
+                    }
+                }
+            }
         }
     }
 }
