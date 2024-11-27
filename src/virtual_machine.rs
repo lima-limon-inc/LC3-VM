@@ -74,7 +74,11 @@ enum Opcode {
         // NOTE: This value needs to be added to the PC at runtime
         pointer: u16,
     },
-    // OpSti,  /* store indirect */
+    /* store indirect */
+    OpSti {
+        sr: u16,
+        offset: u16,
+    },
     // OpJmp,  /* jump */
     // OpRes,  /* reserved (unused) */
     // OpLea,  /* load effective address */
@@ -252,7 +256,10 @@ impl VM {
             }
             // STI
             0b1011 => {
-                todo!()
+                let sr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = (args & 0b0000_0001_1111_1111) >> 9;
+                let offset = sign_extend(offset9, 9);
+                Opcode::OpSti { sr, offset }
             }
             // STR
             0b0111 => {
