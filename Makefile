@@ -1,9 +1,11 @@
-FILENAME      ?=    examples/basic.asm
+DEFAULTDIR    ?=    examples/
+FILENAME      ?=    basic.asm
+PATH          = $(DEFAULTDIR)$(FILENAME)
 
 all: build
 
 compile:
-	./laser-comp -a $(FILENAME)
+	./laser-comp -a $(PATH)
 
 build:
 	cargo build
@@ -14,4 +16,7 @@ run:
 test:
 	cargo test
 
-.PHONY: run build test
+clean:
+	./laser-comp -c examples/*
+
+.PHONY: run build test clean

@@ -5,7 +5,13 @@ const MEMORY_MAX: usize = 2_usize.pow(16);
 const OP_SIZE: u16 = 4;
 const ARG_SIZE: u16 = 12;
 
-const ARGUMENT_MASK: u16 = 0b0000111111111111;
+const ARGUMENT_MASK: u16 = 0b0000_1111_1111_1111;
+
+// Keyboard status register
+const MR_KBSR: u16 = 0b1111_1110_0000_0000;
+
+// Keyboard data register
+const MR_KBDR: u16 = 0b1111_1110_0000_0010;
 
 struct VM {
     memory: [u16; MEMORY_MAX],
@@ -22,34 +28,52 @@ struct VM {
 }
 
 #[derive(PartialEq, Debug)]
-enum AddMode {
-    IMMEDIATE { imm5: u16 },
+enum Mode {
+    IMMEDIATE { value: u16 },
     REGISTER { sr2: u16 },
 }
 
 #[derive(PartialEq, Debug)]
 enum Opcode {
-    OP_BR, /* branch */
+    // OpBr, /* branch */
     /* add  */
-    OP_ADD {
+    OpAdd {
         dr: u16,
         sr1: u16,
-        second_arg: AddMode,
+        second_arg: Mode,
     },
-    OP_LD,   /* load */
-    OP_ST,   /* store */
-    OP_JSR,  /* jump register */
-    OP_AND,  /* bitwise and */
-    OP_LDR,  /* load register */
-    OP_STR,  /* store register */
-    OP_RTI,  /* unused */
-    OP_NOT,  /* bitwise not */
-    OP_LDI,  /* load indirect */
-    OP_STI,  /* store indirect */
-    OP_JMP,  /* jump */
-    OP_RES,  /* reserved (unused) */
-    OP_LEA,  /* load effective address */
-    OP_TRAP, /* execute trap */
+    /* load */
+    OpLd {
+        dr: u16,
+        addr: u16,
+    },
+    // OpSt,  /* store */
+    // OpJsr, /* jump register */
+    /* bitwise and */
+    OpAnd {
+        dr: u16,
+        sr1: u16,
+        second_arg: Mode,
+    },
+    // OpLdr, /* load register */
+    // OpStr, /* store register */
+    // OpRti, /* unused */
+    /* bitwise not */
+    OpNot {
+        dr: u16,
+        sr: u16,
+    },
+    /* load indirect */
+    OpLdi {
+        dr: u16,
+        // NOTE: This value needs to be added to the PC at runtime
+        pointer: u16,
+    },
+    // OpSti,  /* store indirect */
+    // OpJmp,  /* jump */
+    // OpRes,  /* reserved (unused) */
+    // OpLea,  /* load effective address */
+    // OpTrap, /* execute trap */
 }
 
 #[derive(PartialEq, Debug)]
@@ -83,7 +107,23 @@ impl VM {
         }
     }
 
-    fn decode_instruction(instruction: u16) -> Opcode {
+    fn memory_read(&self, addr: u16) -> u16 {
+        // let addr = addr as usize;
+        match addr {
+            MR_KBSR => {
+                todo!()
+            }
+            _ => {
+                let addr = addr as usize;
+                *self
+                    .memory
+                    .get(addr)
+                    .expect("OUT OF MEMORY RANGE. Segmentation fault?")
+            }
+        }
+    }
+
+    fn decode_instruction(&self, instruction: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
         let op = instruction >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments
@@ -106,12 +146,12 @@ impl VM {
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
-                        AddMode::REGISTER { sr2: dest_register }
+                        Mode::REGISTER { sr2: dest_register }
                     }
                     1 => {
                         let immediate = args & 0b0000_0000_0001_1111;
                         let immediate = sign_extend(immediate, 5);
-                        AddMode::IMMEDIATE { imm5: immediate }
+                        Mode::IMMEDIATE { value: immediate }
                     }
                     _ => panic!("ERROR WHILST PARSING"),
                 };
@@ -119,7 +159,8 @@ impl VM {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
 
                 let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
-                Opcode::OP_ADD {
+
+                Opcode::OpAdd {
                     dr,
                     sr1,
                     second_arg,
@@ -127,7 +168,30 @@ impl VM {
             }
             // AND
             0b0101 => {
-                todo!()
+                let mode = (args & 0b0000_0000_0010_0000) >> 5;
+
+                test_print(format!("{:?}", mode).as_str());
+                let second_arg = match mode {
+                    0 => {
+                        let dest_register = args & 0b0000_0000_0000_0111;
+                        Mode::REGISTER { sr2: dest_register }
+                    }
+                    1 => {
+                        let immediate = args & 0b0000_0000_0001_1111;
+                        let immediate = sign_extend(immediate, 5);
+                        Mode::IMMEDIATE { value: immediate }
+                    }
+                    _ => panic!("ERROR WHILST PARSING"),
+                };
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+
+                let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
+
+                Opcode::OpAnd {
+                    dr,
+                    sr1,
+                    second_arg,
+                }
             }
             // JMP / RET
             0b1100 => {
@@ -139,11 +203,17 @@ impl VM {
             }
             // LD
             0b0010 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let value = sign_extend(offset9, 9);
+                Opcode::OpLd { dr, addr: value }
             }
             // LDI
             0b1010 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let pointer = sign_extend(offset9, 9);
+                Opcode::OpLdi { dr, pointer }
             }
             // LDR
             0b0110 => {
@@ -155,7 +225,12 @@ impl VM {
             }
             // NOT
             0b1001 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let sr = (args & 0b0000_0001_1100_0000) >> 6;
+                let spec = args & 0b0000_0000_0011_1111;
+
+                debug_assert_eq!(spec, 0b0000_0000_0011_1111);
+                Opcode::OpNot { dr, sr }
             }
             // RTI
             0b1000 => {
@@ -183,6 +258,12 @@ impl VM {
             }
             _ => panic!("Unrecognized operation code"),
         }
+    }
+
+    fn update_register(&mut self, register_index: u16, value: u16) {
+        let register = self.get_mut_register(register_index);
+        *register = value;
+        self.update_flags(value);
     }
 
     fn update_flags(&mut self, value: u16) {
@@ -225,30 +306,65 @@ impl VM {
 
     fn execute(&mut self, operation: Opcode) {
         match operation {
-            Opcode::OP_ADD {
+            Opcode::OpAdd {
                 dr,
                 sr1,
                 second_arg,
             } => {
                 let sr1_val = self.value_from_register(sr1);
                 let second_value = match second_arg {
-                    AddMode::IMMEDIATE { imm5 } => {
-                        let value = sign_extend(imm5, 5);
-                        value
-                    }
-                    AddMode::REGISTER { sr2 } => {
+                    Mode::IMMEDIATE { value } => value,
+                    Mode::REGISTER { sr2 } => {
                         let sr2_val = self.value_from_register(sr2);
                         sr2_val
                     }
                 };
                 let result = second_value.wrapping_add(sr1_val);
 
-                let destination = self.get_mut_register(dr);
-                *destination = result;
-
-                self.update_flags(result);
+                self.update_register(dr, result);
             }
-            _ => todo!(),
+            Opcode::OpLdi {
+                dr,
+                pointer: offset,
+            } => {
+                let pointer = self.rpc + offset;
+                let addr = self.memory_read(pointer);
+                let value = self.memory_read(addr);
+                self.update_register(dr, value);
+            }
+            Opcode::OpLd { dr, addr } => {
+                let value = self.memory_read(addr);
+                self.update_register(dr, value);
+            }
+            Opcode::OpAnd {
+                dr,
+                sr1,
+                second_arg,
+            } => {
+                let sr1_val = self.value_from_register(sr1);
+                let second_value = match second_arg {
+                    Mode::IMMEDIATE { value } => value,
+                    Mode::REGISTER { sr2 } => {
+                        let sr2_val = self.value_from_register(sr2);
+                        sr2_val
+                    }
+                };
+
+                let result = sr1_val & second_value;
+
+                //TODO: Should I do something about "he condition
+                // codes are set, based on whether the binary value
+                // produced, taken as a 2’s complement integer, is
+                // negative, zero, or positive"
+                self.update_register(dr, result);
+            }
+
+            Opcode::OpNot { dr, sr } => {
+                let value = self.value_from_register(sr);
+                let notvalue = !value;
+
+                self.update_register(dr, notvalue);
+            }
         }
     }
 }
@@ -269,13 +385,13 @@ mod test {
 
         //         ADD R2, R3, R1
         let op = 0b0001_0100_1100_0001;
-        let result = VM::decode_instruction(op);
+        let result = vm.decode_instruction(op);
 
         assert_eq!(
-            Opcode::OP_ADD {
+            Opcode::OpAdd {
                 dr: 2,
                 sr1: 3,
-                second_arg: AddMode::REGISTER { sr2: 1 },
+                second_arg: Mode::REGISTER { sr2: 1 },
             },
             result
         );
@@ -287,13 +403,13 @@ mod test {
 
         //         ADD R5, R7, 2
         let op = 0b0001_1011_1110_0010;
-        let result = VM::decode_instruction(op);
+        let result = vm.decode_instruction(op);
 
         assert_eq!(
-            Opcode::OP_ADD {
+            Opcode::OpAdd {
                 dr: 5,
                 sr1: 7,
-                second_arg: AddMode::IMMEDIATE { imm5: 2 }
+                second_arg: Mode::IMMEDIATE { value: 2 }
             },
             result
         );
@@ -308,10 +424,11 @@ mod test {
     #[test]
     fn add_operation() {
         //         ADD R2, R3, R1
-        let op = 0b0001010011000001;
-        let operation = VM::decode_instruction(op);
-
         let mut vm = VM::new();
+
+        let op = 0b0001010011000001;
+        let operation = vm.decode_instruction(op);
+
         vm.r2 = 0;
         vm.r3 = 10;
         vm.r1 = 15;
@@ -321,7 +438,7 @@ mod test {
 
         //         ADD R5, R7, 2
         let op = 0b0001101111100010;
-        let operation = VM::decode_instruction(op);
+        let operation = vm.decode_instruction(op);
 
         let mut vm = VM::new();
         vm.r5 = 0;
@@ -329,6 +446,66 @@ mod test {
         vm.execute(operation);
         assert_eq!(vm.r5, 12);
         assert_eq!(vm.rcond, FL::POS);
+    }
+
+    #[test]
+    fn and_test() {
+        let mut vm = VM::new();
+
+        //         AND R1, R2, R4
+        let op = 0b0101001010000100;
+        let operation = vm.decode_instruction(op);
+        vm.r1 = 0;
+        vm.r2 = 10;
+        vm.r4 = 12;
+
+        assert_eq!(
+            operation,
+            Opcode::OpAnd {
+                dr: 1,
+                sr1: 2,
+                second_arg: Mode::REGISTER { sr2: 4 }
+            }
+        );
+
+        //This is only done to check if the execution correcly changes
+        // the value of rcond and it's not its default value.
+        vm.rcond = FL::NEG;
+
+        vm.execute(operation);
+        assert_eq!(vm.r1, 8);
+        assert_eq!(vm.rcond, FL::POS);
+    }
+
+    #[test]
+    fn test_ld() {
+        let mut vm = VM::new();
+        // LD R7, 42
+        let op = 0b0010111000101010;
+        let operation = vm.decode_instruction(op);
+        vm.r7 = 0;
+
+        assert_eq!(operation, Opcode::OpLd { dr: 7, addr: 42 });
+
+        vm.memory[42] = 1234;
+        vm.execute(operation);
+        assert_eq!(vm.r7, 1234);
+        assert_eq!(vm.rcond, FL::POS);
+    }
+
+    #[test]
+    fn not_test() {
+        let mut vm = VM::new();
+        // NOT R4, R5
+        let op = 0b1001100101111111;
+        let operation = vm.decode_instruction(op);
+
+        vm.r5 = 10;
+        assert_eq!(operation, Opcode::OpNot { dr: 4, sr: 5 });
+
+        vm.execute(operation);
+
+        assert_eq!(0b1111111111110101, vm.r4);
     }
 }
 
