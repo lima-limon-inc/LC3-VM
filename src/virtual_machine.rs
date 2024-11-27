@@ -35,7 +35,13 @@ enum Mode {
 
 #[derive(PartialEq, Debug)]
 enum Opcode {
-    // Br, /* branch */
+    // branch
+    Br {
+        n: bool,
+        z: bool,
+        p: bool,
+        offset: u16,
+    },
     /* add  */
     Add {
         dr: u16,
@@ -53,7 +59,10 @@ enum Opcode {
         base_reg: u16,
         offset: u16,
     },
-    // Jsr, /* jump register */
+    /* jump register */
+    Jsr {
+        addr: Mode,
+    },
     /* bitwise and */
     And {
         dr: u16,
@@ -89,7 +98,10 @@ enum Opcode {
         sr: u16,
         offset: u16,
     },
-    // Jmp,  /* jump */
+    /* jump */
+    Jmp {
+        base_r: u16,
+    },
     /* reserved (unused) */
     Res,
     /* load effective address */
@@ -97,7 +109,10 @@ enum Opcode {
         dr: u16,
         offset: u16,
     },
-    // Trap, /* execute trap */
+    /* execute trap */
+    Trap {
+        code: TrapCode,
+    },
 }
 
 #[derive(PartialEq, Debug)]
@@ -105,6 +120,16 @@ enum FL {
     POS = 1 << 0,
     ZRO = 1 << 1,
     NEG = 1 << 2,
+}
+
+#[derive(PartialEq, Debug)]
+enum TrapCode {
+    Getc,
+    Out,
+    Puts,
+    In,
+    Putsp,
+    Halt,
 }
 
 fn test_print(message: &str) {
@@ -165,7 +190,14 @@ impl VM {
         match op {
             // BR
             0b0000 => {
-                todo!()
+                // NOTE: This will check if respective bit is set.
+                let n = ((args & 0b0000_1000_0000_0000) >> 11) == 1;
+                let z = ((args & 0b0000_0100_0000_0000) >> 10) == 1;
+                let p = ((args & 0b0000_0010_0000_0000) >> 9) == 1;
+
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let offset = sign_extend(offset9, 9);
+                Opcode::Br { n, z, p, offset }
             }
             // ADD
             0b0001 => {
@@ -224,11 +256,25 @@ impl VM {
             }
             // JMP / RET
             0b1100 => {
-                todo!()
+                let base_r = (args & 0b0000_0001_1100_0000) >> 6;
+                Opcode::Jmp { base_r }
             }
-            // JSR / JSRR / RET
+            // JSR / JSRR
             0b0100 => {
-                todo!()
+                let mode = (args & 0b0000_1000_0000_0000) >> 11;
+                let addr = match mode {
+                    0 => {
+                        let base_r = (args & 0b0000_0001_1100_0000) >> 6;
+                        Mode::REGISTER { sr2: base_r }
+                    }
+                    1 => {
+                        let offset11 = args & 0b0000_0111_1111_1111;
+                        let offset = sign_extend(offset11, 11);
+                        Mode::IMMEDIATE { value: offset }
+                    }
+                    _ => panic!("ERROR WHILE PARSING"),
+                };
+                Opcode::Jsr { addr }
             }
             // LD
             0b0010 => {
@@ -298,6 +344,17 @@ impl VM {
             }
             // TRAP
             0b1111 => {
+                let trapcode: u16 = args & 0b0000_0000_1111_1111;
+                let code = match trapcode {
+                    0x20 => TrapCode::Getc,
+                    0x21 => TrapCode::Out,
+                    0x22 => TrapCode::Puts,
+                    0x23 => TrapCode::In,
+                    0x24 => TrapCode::Putsp,
+                    0x25 => TrapCode::Halt,
+                    _ => panic!("Non existant trap code"),
+                };
+
                 todo!()
             }
             // Reserved
@@ -443,6 +500,29 @@ impl VM {
             Opcode::Lea { dr, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
                 self.update_register(dr, addr);
+            }
+            Opcode::Br { n, z, p, offset } => {
+                let addr = self.rpc.wrapping_add(offset);
+                if (n && self.rcond == FL::NEG)
+                    || (z && self.rcond == FL::ZRO)
+                    || (p && self.rcond == FL::POS)
+                {
+                    self.rpc = addr;
+                }
+            }
+            Opcode::Jmp { base_r } => {
+                let addr = self.value_from_register(base_r);
+                self.rpc = addr;
+            }
+            Opcode::Jsr { addr } => {
+                self.r7 = self.rpc;
+                self.rpc = match addr {
+                    Mode::REGISTER { sr2 } => sr2,
+                    Mode::IMMEDIATE { value } => {
+                        let new_pos = self.rpc.wrapping_add(value);
+                        new_pos
+                    }
+                }
             }
         }
     }
