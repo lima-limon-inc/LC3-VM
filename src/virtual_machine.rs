@@ -59,7 +59,10 @@ enum Opcode {
         base_reg: u16,
         offset: u16,
     },
-    // Jsr, /* jump register */
+    /* jump register */
+    Jsr {
+        addr: Mode,
+    },
     /* bitwise and */
     And {
         dr: u16,
@@ -251,9 +254,22 @@ impl VM {
                 let base_r = (args & 0b0000_0001_1100_0000) >> 6;
                 Opcode::Jmp { base_r }
             }
-            // JSR / JSRR / RET
+            // JSR / JSRR
             0b0100 => {
-                todo!()
+                let mode = (args & 0b0000_1000_0000_0000) >> 11;
+                let addr = match mode {
+                    0 => {
+                        let base_r = (args & 0b0000_0001_1100_0000) >> 6;
+                        Mode::REGISTER { sr2: base_r }
+                    }
+                    1 => {
+                        let offset11 = args & 0b0000_0111_1111_1111;
+                        let offset = sign_extend(offset11, 11);
+                        Mode::IMMEDIATE { value: offset }
+                    }
+                    _ => panic!("ERROR WHILE PARSING"),
+                };
+                Opcode::Jsr { addr }
             }
             // LD
             0b0010 => {
