@@ -47,7 +47,12 @@ enum Opcode {
         dr: u16,
         addr: u16,
     },
-    // OpSt,  /* store */
+    /* store */
+    OpStr {
+        sr: u16,
+        base_reg: u16,
+        offset: u16,
+    },
     // OpJsr, /* jump register */
     /* bitwise and */
     OpAnd {
@@ -105,6 +110,11 @@ impl VM {
             rpc: 0x300,
             rcond: FL::ZRO,
         }
+    }
+
+    fn memory_write(&mut self, addr: u16, value: u16) {
+        let addr = addr as usize;
+        self.memory[addr] = value;
     }
 
     fn memory_read(&self, addr: u16) -> u16 {
@@ -372,6 +382,16 @@ impl VM {
                 let notvalue = !value;
 
                 self.update_register(dr, notvalue);
+            }
+
+            Opcode::OpStr {
+                sr,
+                base_reg,
+                offset,
+            } => {
+                let content = self.value_from_register(sr);
+                let addr = self.value_from_register(base_reg) + offset;
+                self.memory_write(addr, content);
             }
         }
     }
