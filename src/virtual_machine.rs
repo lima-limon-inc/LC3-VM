@@ -400,6 +400,12 @@ impl VM {
                 let addr = self.value_from_register(base_reg) + offset;
                 self.memory_write(addr, content);
             }
+            Opcode::OpSti { sr, offset } => {
+                let pointer = self.rpc + offset;
+                let addr = self.memory_read(pointer);
+                let value = self.memory_read(addr);
+                self.update_register(sr, value);
+            }
         }
     }
 }
