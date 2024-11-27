@@ -398,8 +398,7 @@ impl VM {
                     0x25 => TrapCode::Halt,
                     _ => panic!("Non existant trap code"),
                 };
-
-                todo!()
+                Opcode::Trap { code }
             }
             // Reserved
             0b1101 => Opcode::Res,
