@@ -573,7 +573,7 @@ impl VM {
                 TrapCode::Puts => {}
                 TrapCode::In => {}
                 TrapCode::Putsp => {}
-                TrapCode::Halt => {}
+                TrapCode::Halt => self.running = false,
             },
         }
     }
