@@ -373,7 +373,7 @@ impl VM {
                 dr,
                 pointer: offset,
             } => {
-                let pointer = self.rpc + offset;
+                let pointer = self.rpc.wrapping_add(offset);
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
@@ -418,30 +418,30 @@ impl VM {
                 offset,
             } => {
                 let content = self.value_from_register(sr);
-                let addr = self.value_from_register(base_reg) + offset;
+                let addr = self.value_from_register(base_reg).wrapping_add(offset);
                 self.memory_write(addr, content);
             }
             Opcode::OpSti { sr, offset } => {
-                let pointer = self.rpc + offset;
+                let pointer = self.rpc.wrapping_add(offset);
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
                 self.update_register(sr, value);
             }
             Opcode::OpLdr { dr, base_r, offset } => {
                 let base_value = self.value_from_register(base_r);
-                let addr = base_value + offset;
+                let addr = base_value.wrapping_add(offset);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
             Opcode::OpSt { sr, offset } => {
                 let value = self.value_from_register(sr);
-                let addr = self.rpc + offset;
+                let addr = self.rpc.wrapping_add(offset);
                 self.memory_write(addr, value);
             }
             Opcode::OpRti => panic!("RTI instruction not supported."),
             Opcode::OpRes => panic!("RESERVED instruction not supported."),
             Opcode::OpLea { dr, offset } => {
-                let addr = self.rpc + offset;
+                let addr = self.rpc.wrapping_add(offset);
                 self.update_register(dr, addr);
             }
         }
