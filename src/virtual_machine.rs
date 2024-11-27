@@ -190,6 +190,7 @@ impl VM {
         match op {
             // BR
             0b0000 => {
+                // NOTE: This will check if respective bit is set.
                 let n = ((args & 0b0000_1000_0000_0000) >> 11) == 1;
                 let z = ((args & 0b0000_0100_0000_0000) >> 10) == 1;
                 let p = ((args & 0b0000_0010_0000_0000) >> 9) == 1;
