@@ -1,4 +1,10 @@
 use std::cmp::Ordering;
+use std::env;
+use std::fs;
+use std::io;
+use std::io::Bytes;
+use std::io::Error;
+
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
 
@@ -25,6 +31,7 @@ struct VM {
     r7: u16,
     rpc: u16,
     rcond: FL,
+    running: bool,
 }
 
 #[derive(PartialEq, Debug)]
@@ -153,7 +160,44 @@ impl VM {
             r7: 0,
             rpc: 0x300,
             rcond: FL::ZRO,
+            running: false,
         }
+    }
+
+    fn load_instruction(&self) -> u16 {
+        self.memory_read(self.rpc)
+    }
+
+    pub fn run(&mut self) {
+        self.running = true;
+
+        while self.running {
+            let instruction = self.load_instruction();
+            self.rpc = self.rpc.wrapping_add(1);
+            let operation = self.decode_instruction(instruction);
+            self.execute(operation);
+        }
+    }
+
+    fn load_bytes(&mut self, bytes: &[u8]) {
+        let instructions: [u16; MEMORY_MAX] = bytes
+            .chunks(2)
+            .map(|halves| {
+                let first_half = halves.get(0).unwrap();
+                let second_half = halves.get(1).unwrap();
+                let instruction = u16::from_be_bytes([*first_half, *second_half]);
+                instruction
+            })
+            .collect::<Vec<u16>>()
+            .try_into()
+            .unwrap();
+
+        self.memory = instructions;
+    }
+
+    pub fn load_program(&mut self, path: &str) -> Result<(), Error> {
+        let bytes = &std::fs::read(path)?;
+        Ok(())
     }
 
     fn memory_write(&mut self, addr: u16, value: u16) {
@@ -177,11 +221,11 @@ impl VM {
         }
     }
 
-    fn decode_instruction(&self, instruction: u16) -> Opcode {
+    fn decode_instruction(&self, binary_repr: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
-        let op = instruction >> ARG_SIZE;
+        let op = binary_repr >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments
-        let args = instruction & ARGUMENT_MASK;
+        let args = binary_repr & ARGUMENT_MASK;
 
         // NOTE: Whilst writing constants inside a code block
         // is not very orthodox, I believe it remains a good
@@ -354,8 +398,7 @@ impl VM {
                     0x25 => TrapCode::Halt,
                     _ => panic!("Non existant trap code"),
                 };
-
-                todo!()
+                Opcode::Trap { code }
             }
             // Reserved
             0b1101 => Opcode::Res,
@@ -524,6 +567,14 @@ impl VM {
                     }
                 }
             }
+            Opcode::Trap { code } => match code {
+                TrapCode::Getc => {}
+                TrapCode::Out => {}
+                TrapCode::Puts => {}
+                TrapCode::In => {}
+                TrapCode::Putsp => {}
+                TrapCode::Halt => self.running = false,
+            },
         }
     }
 }
