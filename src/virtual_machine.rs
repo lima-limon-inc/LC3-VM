@@ -431,6 +431,7 @@ impl VM {
                 let addr = self.rpc + offset;
                 self.memory_write(addr, value);
             }
+            Opcode::OpRti => panic!("RTI instruction not supported."),
         }
     }
 }
