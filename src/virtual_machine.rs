@@ -415,6 +415,12 @@ impl VM {
                 let value = self.memory_read(addr);
                 self.update_register(sr, value);
             }
+            Opcode::OpLdr { dr, base_r, offset } => {
+                let base_value = self.value_from_register(base_r);
+                let addr = base_value + offset;
+                let value = self.memory_read(addr);
+                self.update_register(dr, value);
+            }
         }
     }
 }
