@@ -280,7 +280,7 @@ impl VM {
             // STI
             0b1011 => {
                 let sr = (args & 0b0000_1110_0000_0000) >> 9;
-                let offset9 = (args & 0b0000_0001_1111_1111) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
                 let offset = sign_extend(offset9, 9);
                 Opcode::Sti { sr, offset }
             }
