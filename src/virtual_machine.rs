@@ -109,7 +109,10 @@ enum Opcode {
         dr: u16,
         offset: u16,
     },
-    // Trap, /* execute trap */
+    /* execute trap */
+    Trap {
+        code: TrapCode,
+    },
 }
 
 #[derive(PartialEq, Debug)]
@@ -117,6 +120,16 @@ enum FL {
     POS = 1 << 0,
     ZRO = 1 << 1,
     NEG = 1 << 2,
+}
+
+#[derive(PartialEq, Debug)]
+enum TrapCode {
+    Getc,
+    Out,
+    Puts,
+    In,
+    Putsp,
+    Halt,
 }
 
 fn test_print(message: &str) {
@@ -339,6 +352,17 @@ impl VM {
             }
             // TRAP
             0b1111 => {
+                let trapcode: u16 = args & 0b0000_0000_1111_1111;
+                let code = match trapcode {
+                    0x20 => TrapCode::Getc,
+                    0x21 => TrapCode::Out,
+                    0x22 => TrapCode::Puts,
+                    0x23 => TrapCode::In,
+                    0x24 => TrapCode::Putsp,
+                    0x25 => TrapCode::Halt,
+                    _ => panic!("Non existant trap code"),
+                };
+
                 todo!()
             }
             // Reserved
