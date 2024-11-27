@@ -246,7 +246,15 @@ impl VM {
             }
             // STR
             0b0111 => {
-                todo!()
+                let sr = (args & 0b0000_1110_0000_0000) >> 9;
+                let base_reg = (args & 0b0000_0001_1100_0000) >> 6;
+                let offset6 = args & 0b0000_0000_0011_1111;
+                let offset = sign_extend(offset6, 6);
+                Opcode::OpStr {
+                    sr,
+                    base_reg,
+                    offset,
+                }
             }
             // TRAP
             0b1111 => {
