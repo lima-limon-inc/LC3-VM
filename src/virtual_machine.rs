@@ -31,6 +31,7 @@ struct VM {
     r7: u16,
     rpc: u16,
     rcond: FL,
+    running: bool,
 }
 
 #[derive(PartialEq, Debug)]
@@ -159,6 +160,22 @@ impl VM {
             r7: 0,
             rpc: 0x300,
             rcond: FL::ZRO,
+            running: false,
+        }
+    }
+
+    fn load_instruction(&self) -> u16 {
+        self.memory_read(self.rpc)
+    }
+
+    pub fn run(&mut self) {
+        self.running = true;
+
+        while self.running {
+            let instruction = self.load_instruction();
+            self.rpc = self.rpc.wrapping_add(1);
+            let operation = self.decode_instruction(instruction);
+            self.execute(operation);
         }
     }
 
