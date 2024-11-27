@@ -35,7 +35,13 @@ enum Mode {
 
 #[derive(PartialEq, Debug)]
 enum Opcode {
-    // Br, /* branch */
+    // branch
+    Br {
+        n: bool,
+        z: bool,
+        p: bool,
+        offset: u16,
+    },
     /* add  */
     Add {
         dr: u16,
@@ -165,7 +171,22 @@ impl VM {
         match op {
             // BR
             0b0000 => {
-                todo!()
+                let n_bit = (args & 0b0000_1000_0000_0000) >> 11;
+                let z_bit = (args & 0b0000_0100_0000_0000) >> 10;
+                let p_bit = (args & 0b0000_0010_0000_0000) >> 9;
+                let bit_to_bool = |a: u16| {
+                    if a == 1 {
+                        true
+                    } else {
+                        false
+                    }
+                };
+                // QUESTION: Is there a way to map this function to all these values
+                let (n, z, p) = (bit_to_bool(n_bit), bit_to_bool(z_bit), bit_to_bool(p_bit));
+
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let offset = sign_extend(offset9, 9);
+                Opcode::Br { n, z, p, offset }
             }
             // ADD
             0b0001 => {
