@@ -35,45 +35,69 @@ enum Mode {
 
 #[derive(PartialEq, Debug)]
 enum Opcode {
-    // OpBr, /* branch */
+    // Br, /* branch */
     /* add  */
-    OpAdd {
+    Add {
         dr: u16,
         sr1: u16,
         second_arg: Mode,
     },
     /* load */
-    OpLd {
+    Ld {
         dr: u16,
         addr: u16,
     },
-    // OpSt,  /* store */
-    // OpJsr, /* jump register */
+    /* store register */
+    Str {
+        sr: u16,
+        base_reg: u16,
+        offset: u16,
+    },
+    // Jsr, /* jump register */
     /* bitwise and */
-    OpAnd {
+    And {
         dr: u16,
         sr1: u16,
         second_arg: Mode,
     },
-    // OpLdr, /* load register */
-    // OpStr, /* store register */
-    // OpRti, /* unused */
+    /* load register */
+    Ldr {
+        dr: u16,
+        base_r: u16,
+        offset: u16,
+    },
+    /* store  */
+    St {
+        sr: u16,
+        offset: u16,
+    },
+    /* unused */
+    Rti,
     /* bitwise not */
-    OpNot {
+    Not {
         dr: u16,
         sr: u16,
     },
     /* load indirect */
-    OpLdi {
+    Ldi {
         dr: u16,
         // NOTE: This value needs to be added to the PC at runtime
         pointer: u16,
     },
-    // OpSti,  /* store indirect */
-    // OpJmp,  /* jump */
-    // OpRes,  /* reserved (unused) */
-    // OpLea,  /* load effective address */
-    // OpTrap, /* execute trap */
+    /* store indirect */
+    Sti {
+        sr: u16,
+        offset: u16,
+    },
+    // Jmp,  /* jump */
+    /* reserved (unused) */
+    Res,
+    /* load effective address */
+    Lea {
+        dr: u16,
+        offset: u16,
+    },
+    // Trap, /* execute trap */
 }
 
 #[derive(PartialEq, Debug)]
@@ -105,6 +129,11 @@ impl VM {
             rpc: 0x300,
             rcond: FL::ZRO,
         }
+    }
+
+    fn memory_write(&mut self, addr: u16, value: u16) {
+        let addr = addr as usize;
+        self.memory[addr] = value;
     }
 
     fn memory_read(&self, addr: u16) -> u16 {
@@ -160,7 +189,7 @@ impl VM {
 
                 let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
 
-                Opcode::OpAdd {
+                Opcode::Add {
                     dr,
                     sr1,
                     second_arg,
@@ -187,7 +216,7 @@ impl VM {
 
                 let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
 
-                Opcode::OpAnd {
+                Opcode::And {
                     dr,
                     sr1,
                     second_arg,
@@ -206,22 +235,29 @@ impl VM {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let value = sign_extend(offset9, 9);
-                Opcode::OpLd { dr, addr: value }
+                Opcode::Ld { dr, addr: value }
             }
             // LDI
             0b1010 => {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let pointer = sign_extend(offset9, 9);
-                Opcode::OpLdi { dr, pointer }
+                Opcode::Ldi { dr, pointer }
             }
             // LDR
             0b0110 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let base_r = (args & 0b0000_0001_1100_0000) >> 6;
+                let offset6 = args & 0b0000_0000_0011_1111;
+                let offset = sign_extend(offset6, 6);
+                Opcode::Ldr { dr, base_r, offset }
             }
             // LEA
             0b1110 => {
-                todo!()
+                let dr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let offset = sign_extend(offset9, 9);
+                Opcode::Lea { dr, offset }
             }
             // NOT
             0b1001 => {
@@ -230,32 +266,42 @@ impl VM {
                 let spec = args & 0b0000_0000_0011_1111;
 
                 debug_assert_eq!(spec, 0b0000_0000_0011_1111);
-                Opcode::OpNot { dr, sr }
+                Opcode::Not { dr, sr }
             }
             // RTI
-            0b1000 => {
-                todo!()
-            }
+            0b1000 => Opcode::Rti,
             // ST
             0b0011 => {
-                todo!()
+                let sr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let offset = sign_extend(offset9, 9);
+                Opcode::St { sr, offset }
             }
             // STI
             0b1011 => {
-                todo!()
+                let sr = (args & 0b0000_1110_0000_0000) >> 9;
+                let offset9 = args & 0b0000_0001_1111_1111;
+                let offset = sign_extend(offset9, 9);
+                Opcode::Sti { sr, offset }
             }
             // STR
             0b0111 => {
-                todo!()
+                let sr = (args & 0b0000_1110_0000_0000) >> 9;
+                let base_reg = (args & 0b0000_0001_1100_0000) >> 6;
+                let offset6 = args & 0b0000_0000_0011_1111;
+                let offset = sign_extend(offset6, 6);
+                Opcode::Str {
+                    sr,
+                    base_reg,
+                    offset,
+                }
             }
             // TRAP
             0b1111 => {
                 todo!()
             }
-            // Illegal?
-            0b1101 => {
-                todo!()
-            }
+            // Reserved
+            0b1101 => Opcode::Res,
             _ => panic!("Unrecognized operation code"),
         }
     }
@@ -306,7 +352,7 @@ impl VM {
 
     fn execute(&mut self, operation: Opcode) {
         match operation {
-            Opcode::OpAdd {
+            Opcode::Add {
                 dr,
                 sr1,
                 second_arg,
@@ -323,20 +369,20 @@ impl VM {
 
                 self.update_register(dr, result);
             }
-            Opcode::OpLdi {
+            Opcode::Ldi {
                 dr,
                 pointer: offset,
             } => {
-                let pointer = self.rpc + offset;
+                let pointer = self.rpc.wrapping_add(offset);
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
-            Opcode::OpLd { dr, addr } => {
+            Opcode::Ld { dr, addr } => {
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
-            Opcode::OpAnd {
+            Opcode::And {
                 dr,
                 sr1,
                 second_arg,
@@ -359,11 +405,44 @@ impl VM {
                 self.update_register(dr, result);
             }
 
-            Opcode::OpNot { dr, sr } => {
+            Opcode::Not { dr, sr } => {
                 let value = self.value_from_register(sr);
                 let notvalue = !value;
 
                 self.update_register(dr, notvalue);
+            }
+
+            Opcode::Str {
+                sr,
+                base_reg,
+                offset,
+            } => {
+                let content = self.value_from_register(sr);
+                let addr = self.value_from_register(base_reg).wrapping_add(offset);
+                self.memory_write(addr, content);
+            }
+            Opcode::Sti { sr, offset } => {
+                let pointer = self.rpc.wrapping_add(offset);
+                let addr = self.memory_read(pointer);
+                let value = self.memory_read(addr);
+                self.update_register(sr, value);
+            }
+            Opcode::Ldr { dr, base_r, offset } => {
+                let base_value = self.value_from_register(base_r);
+                let addr = base_value.wrapping_add(offset);
+                let value = self.memory_read(addr);
+                self.update_register(dr, value);
+            }
+            Opcode::St { sr, offset } => {
+                let value = self.value_from_register(sr);
+                let addr = self.rpc.wrapping_add(offset);
+                self.memory_write(addr, value);
+            }
+            Opcode::Rti => panic!("RTI instruction not supported."),
+            Opcode::Res => panic!("RESERVED instruction not supported."),
+            Opcode::Lea { dr, offset } => {
+                let addr = self.rpc.wrapping_add(offset);
+                self.update_register(dr, addr);
             }
         }
     }
@@ -388,7 +467,7 @@ mod test {
         let result = vm.decode_instruction(op);
 
         assert_eq!(
-            Opcode::OpAdd {
+            Opcode::Add {
                 dr: 2,
                 sr1: 3,
                 second_arg: Mode::REGISTER { sr2: 1 },
@@ -406,7 +485,7 @@ mod test {
         let result = vm.decode_instruction(op);
 
         assert_eq!(
-            Opcode::OpAdd {
+            Opcode::Add {
                 dr: 5,
                 sr1: 7,
                 second_arg: Mode::IMMEDIATE { value: 2 }
@@ -461,7 +540,7 @@ mod test {
 
         assert_eq!(
             operation,
-            Opcode::OpAnd {
+            Opcode::And {
                 dr: 1,
                 sr1: 2,
                 second_arg: Mode::REGISTER { sr2: 4 }
@@ -485,7 +564,7 @@ mod test {
         let operation = vm.decode_instruction(op);
         vm.r7 = 0;
 
-        assert_eq!(operation, Opcode::OpLd { dr: 7, addr: 42 });
+        assert_eq!(operation, Opcode::Ld { dr: 7, addr: 42 });
 
         vm.memory[42] = 1234;
         vm.execute(operation);
@@ -501,7 +580,7 @@ mod test {
         let operation = vm.decode_instruction(op);
 
         vm.r5 = 10;
-        assert_eq!(operation, Opcode::OpNot { dr: 4, sr: 5 });
+        assert_eq!(operation, Opcode::Not { dr: 4, sr: 5 });
 
         vm.execute(operation);
 
