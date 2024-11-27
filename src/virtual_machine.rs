@@ -432,6 +432,7 @@ impl VM {
                 self.memory_write(addr, value);
             }
             Opcode::OpRti => panic!("RTI instruction not supported."),
+            Opcode::OpRes => panic!("RESERVED instruction not supported."),
         }
     }
 }
