@@ -13,6 +13,7 @@ use std::io::Error;
 use std::io::Read;
 use std::io::Write;
 use std::os::fd::AsFd;
+use thiserror::Error;
 
 const ARG_SIZE: u16 = 12;
 // 2^16. 65536 locations.
@@ -146,6 +147,14 @@ enum TrapCode {
     Halt,
 }
 
+#[derive(Error, Debug)]
+pub enum VMError {
+    #[error("File does not exist.")]
+    FileDoesNotExist(),
+    #[error("unknown data store error")]
+    Unknown,
+}
+
 fn test_print(message: &str) {
     if cfg!(test) {
         println!("DEBUG: {:?}", message);
@@ -154,7 +163,7 @@ fn test_print(message: &str) {
 
 impl fmt::Debug for VM {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        writeln!(f, "")?;
+        writeln!(f)?;
         writeln!(f, "R0: {}", self.r0)?;
         writeln!(f, "R1: {}", self.r1)?;
         writeln!(f, "R2: {}", self.r2)?;
@@ -243,8 +252,8 @@ impl VM {
         self.memory = instructions;
     }
 
-    pub fn load_program(&mut self, path: &str) -> Result<(), Error> {
-        let bytes = &std::fs::read(path)?;
+    pub fn load_program(&mut self, path: &str) -> Result<(), VMError> {
+        let bytes = &std::fs::read(path).map_err(|_| VMError::FileDoesNotExist())?;
         self.load_bytes(bytes);
         Ok(())
     }

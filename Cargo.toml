@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 nix = { version="0.29.0", features=["poll", "time"] }
+thiserror = "2.0.3"
 
 [lints.rust]
 unsafe_code = "forbid"
