@@ -158,7 +158,7 @@ impl VM {
             r5: 0,
             r6: 0,
             r7: 0,
-            rpc: 0x300,
+            rpc: 0x3000,
             rcond: FL::ZRO,
             running: false,
         }
