@@ -194,9 +194,10 @@ impl VM {
             let second_half = byte.get(1).unwrap();
             let instruction = u16::from_be_bytes([*first_half, *second_half]);
             let offset = index.wrapping_add(addr as usize);
-            println!("ADDR: {:x}", offset);
             instructions[offset] = instruction;
         }
+
+        self.memory = instructions;
     }
 
     pub fn load_program(&mut self, path: &str) -> Result<(), Error> {
