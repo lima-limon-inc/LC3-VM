@@ -1,4 +1,13 @@
 use std::cmp::Ordering;
+use std::env;
+use std::fmt;
+use std::fs;
+use std::io;
+use std::io::Bytes;
+use std::io::Error;
+use std::io::Read;
+use std::io::Write;
+
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
 
@@ -13,7 +22,7 @@ const MR_KBSR: u16 = 0b1111_1110_0000_0000;
 // Keyboard data register
 const MR_KBDR: u16 = 0b1111_1110_0000_0010;
 
-struct VM {
+pub struct VM {
     memory: [u16; MEMORY_MAX],
     r0: u16,
     r1: u16,
@@ -25,6 +34,7 @@ struct VM {
     r7: u16,
     rpc: u16,
     rcond: FL,
+    running: bool,
 }
 
 #[derive(PartialEq, Debug)]
@@ -138,6 +148,24 @@ fn test_print(message: &str) {
     }
 }
 
+impl fmt::Debug for VM {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "")?;
+        writeln!(f, "R0: {}", self.r0)?;
+        writeln!(f, "R1: {}", self.r1)?;
+        writeln!(f, "R2: {}", self.r2)?;
+        writeln!(f, "R3: {}", self.r3)?;
+        writeln!(f, "R4: {}", self.r4)?;
+        writeln!(f, "R5: {}", self.r5)?;
+        writeln!(f, "R6: {}", self.r6)?;
+        writeln!(f, "R7: {}", self.r7)?;
+        writeln!(f, "RPC: {:x}", self.rpc)?;
+        writeln!(f, "RCOND: {:?}", self.rcond)?;
+        writeln!(f, "RCOND: {:?}", self.rcond)?;
+        writeln!(f, "Running: {:?}", self.running)
+    }
+}
+
 impl VM {
     pub fn new() -> VM {
         let memory = [0; MEMORY_MAX];
@@ -151,9 +179,64 @@ impl VM {
             r5: 0,
             r6: 0,
             r7: 0,
-            rpc: 0x300,
+            rpc: 0x3000,
             rcond: FL::ZRO,
+            running: false,
         }
+    }
+
+    fn load_instruction(&self) -> u16 {
+        self.memory_read(self.rpc)
+    }
+
+    pub fn run(&mut self) {
+        self.running = true;
+
+        while self.running {
+            let instruction = self.load_instruction();
+            self.rpc = self.rpc.wrapping_add(1);
+            let operation = self.decode_instruction(instruction);
+            if cfg!(debug_assertions) {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self);
+                println!("Current instruction {:?}", operation);
+                println!("Press any key for next instruction");
+                let input: u16 = std::io::stdin()
+                    .bytes()
+                    .next()
+                    .and_then(|result| result.ok())
+                    .map(|byte| byte as u16)
+                    .unwrap();
+            }
+            self.execute(operation);
+        }
+    }
+
+    fn load_bytes(&mut self, bytes: &[u8]) {
+        let mut instructions: [u16; MEMORY_MAX] = [0; MEMORY_MAX];
+
+        let mut it = bytes.chunks(2);
+        let orig = it.next().unwrap();
+        let first = orig.get(0).unwrap();
+        let second = orig.get(1).unwrap();
+
+        let addr = u16::from_be_bytes([*first, *second]);
+
+        for (index, byte) in it.enumerate() {
+            let first_half = byte.get(0).unwrap();
+            let second_half = byte.get(1).unwrap();
+            let instruction = u16::from_be_bytes([*first_half, *second_half]);
+            let offset = index.wrapping_add(addr as usize);
+            instructions[offset] = instruction;
+        }
+
+        self.memory = instructions;
+    }
+
+    pub fn load_program(&mut self, path: &str) -> Result<(), Error> {
+        let bytes = &std::fs::read(path)?;
+        self.load_bytes(bytes);
+        Ok(())
     }
 
     fn memory_write(&mut self, addr: u16, value: u16) {
@@ -165,7 +248,7 @@ impl VM {
         // let addr = addr as usize;
         match addr {
             MR_KBSR => {
-                todo!()
+                todo!(":D")
             }
             _ => {
                 let addr = addr as usize;
@@ -177,11 +260,11 @@ impl VM {
         }
     }
 
-    fn decode_instruction(&self, instruction: u16) -> Opcode {
+    fn decode_instruction(&self, binary_repr: u16) -> Opcode {
         // Removes the arguments from the instruction, leaving only the operator
-        let op = instruction >> ARG_SIZE;
+        let op = binary_repr >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments
-        let args = instruction & ARGUMENT_MASK;
+        let args = binary_repr & ARGUMENT_MASK;
 
         // NOTE: Whilst writing constants inside a code block
         // is not very orthodox, I believe it remains a good
@@ -354,8 +437,7 @@ impl VM {
                     0x25 => TrapCode::Halt,
                     _ => panic!("Non existant trap code"),
                 };
-
-                todo!()
+                Opcode::Trap { code }
             }
             // Reserved
             0b1101 => Opcode::Res,
@@ -524,6 +606,58 @@ impl VM {
                     }
                 }
             }
+            Opcode::Trap { code } => match code {
+                TrapCode::Getc => {
+                    let input: u16 = std::io::stdin()
+                        .bytes()
+                        .next()
+                        .and_then(|result| result.ok())
+                        .map(|byte| byte as u16)
+                        .unwrap();
+                    self.update_register(0, input);
+                }
+                TrapCode::Out => {
+                    let content = self.value_from_register(0);
+                    print!("{}", content);
+                    std::io::stdout().flush();
+                }
+                TrapCode::Puts => {
+                    let mut addr = self.value_from_register(0);
+                    let mut content = self.memory_read(addr);
+                    while content != 0x0000 {
+                        print!("{}", content);
+                        addr = addr.wrapping_add(1);
+                        content = self.memory_read(addr);
+                    }
+                }
+                TrapCode::In => {
+                    print!("Enter a character:");
+                    let input: u8 = std::io::stdin()
+                        .bytes()
+                        .next()
+                        .and_then(|result| result.ok())
+                        .map(|byte| byte as u8)
+                        .unwrap();
+                    print!("{}", input as char);
+                    std::io::stdout().flush();
+
+                    self.update_register(0, input.into());
+                }
+                TrapCode::Putsp => {
+                    let mut addr = self.value_from_register(0);
+                    let mut content = self.memory_read(addr);
+                    while content != 0x0000 {
+                        let first_char = (content & 0b1111_1111_0000_0000) >> 8;
+                        let second_char = content & 0b0000_0000_1111_1111;
+                        print!("{}", first_char);
+                        print!("{}", second_char);
+                        addr = addr.wrapping_add(1);
+                        content = self.memory_read(addr);
+                    }
+                    println!("",);
+                }
+                TrapCode::Halt => self.running = false,
+            },
         }
     }
 }
