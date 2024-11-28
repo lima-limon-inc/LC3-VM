@@ -43,8 +43,8 @@ pub struct VM {
 
 #[derive(PartialEq, Debug)]
 enum Mode {
-    IMMEDIATE { value: u16 },
-    REGISTER { sr2: u16 },
+    Immediate { value: u16 },
+    Register { sr2: u16 },
 }
 
 #[derive(PartialEq, Debug)]
@@ -164,7 +164,6 @@ impl fmt::Debug for VM {
         writeln!(f, "R6: {}", self.r6)?;
         writeln!(f, "R7: {}", self.r7)?;
         writeln!(f, "RPC: {:x}", self.rpc)?;
-        writeln!(f, "RCOND: {:?}", self.rcond)?;
         writeln!(f, "RCOND: {:?}", self.rcond)?;
         writeln!(f, "Running: {:?}", self.running)
     }
@@ -308,12 +307,12 @@ impl VM {
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
-                        Mode::REGISTER { sr2: dest_register }
+                        Mode::Register { sr2: dest_register }
                     }
                     1 => {
                         let immediate = args & 0b0000_0000_0001_1111;
                         let immediate = sign_extend(immediate, 5);
-                        Mode::IMMEDIATE { value: immediate }
+                        Mode::Immediate { value: immediate }
                     }
                     _ => panic!("ERROR WHILST PARSING"),
                 };
@@ -336,12 +335,12 @@ impl VM {
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
-                        Mode::REGISTER { sr2: dest_register }
+                        Mode::Register { sr2: dest_register }
                     }
                     1 => {
                         let immediate = args & 0b0000_0000_0001_1111;
                         let immediate = sign_extend(immediate, 5);
-                        Mode::IMMEDIATE { value: immediate }
+                        Mode::Immediate { value: immediate }
                     }
                     _ => panic!("ERROR WHILST PARSING"),
                 };
@@ -366,12 +365,12 @@ impl VM {
                 let addr = match mode {
                     0 => {
                         let base_r = (args & 0b0000_0001_1100_0000) >> 6;
-                        Mode::REGISTER { sr2: base_r }
+                        Mode::Register { sr2: base_r }
                     }
                     1 => {
                         let offset11 = args & 0b0000_0111_1111_1111;
                         let offset = sign_extend(offset11, 11);
-                        Mode::IMMEDIATE { value: offset }
+                        Mode::Immediate { value: offset }
                     }
                     _ => panic!("ERROR WHILE PARSING"),
                 };
@@ -518,8 +517,8 @@ impl VM {
             } => {
                 let sr1_val = self.value_from_register(sr1);
                 let second_value = match second_arg {
-                    Mode::IMMEDIATE { value } => value,
-                    Mode::REGISTER { sr2 } => {
+                    Mode::Immediate { value } => value,
+                    Mode::Register { sr2 } => {
                         let sr2_val = self.value_from_register(sr2);
                         sr2_val
                     }
@@ -548,8 +547,8 @@ impl VM {
             } => {
                 let sr1_val = self.value_from_register(sr1);
                 let second_value = match second_arg {
-                    Mode::IMMEDIATE { value } => value,
-                    Mode::REGISTER { sr2 } => {
+                    Mode::Immediate { value } => value,
+                    Mode::Register { sr2 } => {
                         let sr2_val = self.value_from_register(sr2);
                         sr2_val
                     }
@@ -619,8 +618,8 @@ impl VM {
             Opcode::Jsr { addr } => {
                 self.r7 = self.rpc;
                 self.rpc = match addr {
-                    Mode::REGISTER { sr2 } => sr2,
-                    Mode::IMMEDIATE { value } => {
+                    Mode::Register { sr2 } => sr2,
+                    Mode::Immediate { value } => {
                         let new_pos = self.rpc.wrapping_add(value);
                         new_pos
                     }
@@ -707,7 +706,7 @@ mod test {
             Opcode::Add {
                 dr: 2,
                 sr1: 3,
-                second_arg: Mode::REGISTER { sr2: 1 },
+                second_arg: Mode::Register { sr2: 1 },
             },
             result
         );
@@ -725,7 +724,7 @@ mod test {
             Opcode::Add {
                 dr: 5,
                 sr1: 7,
-                second_arg: Mode::IMMEDIATE { value: 2 }
+                second_arg: Mode::Immediate { value: 2 }
             },
             result
         );
@@ -780,7 +779,7 @@ mod test {
             Opcode::And {
                 dr: 1,
                 sr1: 2,
-                second_arg: Mode::REGISTER { sr2: 4 }
+                second_arg: Mode::Register { sr2: 4 }
             }
         );
 
