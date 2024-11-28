@@ -1,12 +1,18 @@
+use nix::sys::select::select;
+use nix::sys::select::FdSet;
+use nix::sys::time::{TimeVal, TimeValLike};
 use std::cmp::Ordering;
 use std::env;
+use std::file;
 use std::fmt;
 use std::fs;
+use std::fs::File;
 use std::io;
 use std::io::Bytes;
 use std::io::Error;
 use std::io::Read;
 use std::io::Write;
+use std::os::fd::AsFd;
 
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
@@ -185,7 +191,7 @@ impl VM {
         }
     }
 
-    fn load_instruction(&self) -> u16 {
+    fn load_instruction(&mut self) -> u16 {
         self.memory_read(self.rpc)
     }
 
@@ -246,25 +252,32 @@ impl VM {
         Ok(())
     }
 
+    fn check_key(&mut self) {
+        let mut buffer = [0; 1];
+        std::io::stdin().read_exact(&mut buffer).unwrap();
+        if buffer[0] != 0 {
+            self.memory_write(MR_KBSR, 1 << 15);
+            self.memory_write(MR_KBDR, buffer[0] as u16);
+        } else {
+            self.memory_write(MR_KBSR, 0)
+        }
+    }
+
     fn memory_write(&mut self, addr: u16, value: u16) {
         let addr = addr as usize;
         self.memory[addr] = value;
     }
 
-    fn memory_read(&self, addr: u16) -> u16 {
-        // let addr = addr as usize;
-        match addr {
-            MR_KBSR => {
-                todo!(":D")
-            }
-            _ => {
-                let addr = addr as usize;
-                *self
-                    .memory
-                    .get(addr)
-                    .expect("OUT OF MEMORY RANGE. Segmentation fault?")
-            }
+    fn memory_read(&mut self, addr: u16) -> u16 {
+        if addr == MR_KBSR {
+            self.check_key();
         }
+
+        let addr = addr as usize;
+        *self
+            .memory
+            .get(addr)
+            .expect("OUT OF MEMORY RANGE. Segmentation fault?")
     }
 
     fn decode_instruction(&self, binary_repr: u16) -> Opcode {

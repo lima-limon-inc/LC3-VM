@@ -13,6 +13,7 @@ fn main() {
     if let Ok(a) = a {
         println!("Hello, world!");
         vm.run();
+        println!("DONE");
     } else {
         panic!();
     }
