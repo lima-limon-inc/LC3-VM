@@ -189,6 +189,13 @@ impl VM {
         self.memory_read(self.rpc)
     }
 
+    // QUESTION: Maybe implement from?
+    fn u16_to_char(tochar: u16) -> char {
+        let right_bits: u8 = tochar as u8;
+        let c_char: char = right_bits.into();
+        c_char
+    }
+
     pub fn run(&mut self) {
         self.running = true;
 
@@ -617,7 +624,8 @@ impl VM {
                 }
                 TrapCode::Out => {
                     let content = self.value_from_register(0);
-                    print!("{}", content);
+                    let char_repr = Self::u16_to_char(content);
+                    print!("{}", char_repr);
                     std::io::stdout().flush().expect("Hey");
                 }
                 TrapCode::Puts => {
