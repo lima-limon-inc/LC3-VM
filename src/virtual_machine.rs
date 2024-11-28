@@ -459,11 +459,13 @@ impl VM {
     }
 
     fn update_flags(&mut self, value: u16) {
-        self.rcond = match value.cmp(&0) {
-            Ordering::Less => FL::NEG,
-            Ordering::Equal => FL::ZRO,
-            Ordering::Greater => FL::POS,
-        };
+        self.rcond = if value == 0 {
+            FL::ZRO
+        } else if value >> 15 == 1 {
+            FL::NEG
+        } else {
+            FL::POS
+        }
     }
 
     fn value_from_register(&self, reg_num: u16) -> u16 {
@@ -809,6 +811,47 @@ mod test {
         vm.execute(operation);
 
         assert_eq!(0b1111111111110101, vm.r4);
+    }
+
+    #[test]
+    fn check_flags() {
+        //This functions checks that the condition flags are correctly
+        // set to negative, positive and zero when they should.
+        let mut vm = VM::new();
+
+        //  ADDR  |  HEX  |      BINARY      |  LN  |  ASSEMBLY
+        //        |       |                  |    1 |           .ORIG x3000
+        // x3000  | x123F | 0001001000111111 |    2 |           ADD R1, R0, -1
+        // x3001  | x1221 | 0001001000100001 |    3 |           ADD R1, R0, 1
+        // x3002  | x1220 | 0001001000100000 |    4 |           ADD R1, R0, 0
+        // x3003  | x1234 | 0001001000110100 |    5 |           ADD R1, R0, -12
+        // x3004  | x122C | 0001001000101100 |    6 |           ADD R1, R0, 12
+        // x3005  | xF022 | 1111000000100010 |    7 |           PUTS
+        // x3006  | xF025 | 1111000000100101 |    8 |           HALT
+        //        |       |                  |    9 |           .END
+
+        let mut operations = [
+            0b0001001000111111,
+            0b0001001000100001,
+            0b0001001000100000,
+            0b0001001000110100,
+            0b0001001000101100,
+            0b1111000000100010,
+            0b1111000000100101,
+        ]
+        .iter();
+
+        // This is only done to for testing purposes
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        assert_eq!(vm.rcond, FL::NEG);
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        assert_eq!(vm.rcond, FL::POS);
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        assert_eq!(vm.rcond, FL::ZRO);
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        assert_eq!(vm.rcond, FL::NEG);
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        assert_eq!(vm.rcond, FL::POS);
     }
 }
 
