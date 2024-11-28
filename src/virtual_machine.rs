@@ -14,11 +14,9 @@ use std::io::Read;
 use std::io::Write;
 use std::os::fd::AsFd;
 
+const ARG_SIZE: u16 = 12;
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
-
-const OP_SIZE: u16 = 4;
-const ARG_SIZE: u16 = 12;
 
 const ARGUMENT_MASK: u16 = 0b0000_1111_1111_1111;
 
