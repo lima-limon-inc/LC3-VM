@@ -6,6 +6,7 @@ use std::io;
 use std::io::Bytes;
 use std::io::Error;
 use std::io::Read;
+use std::io::Write;
 
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
@@ -247,7 +248,7 @@ impl VM {
         // let addr = addr as usize;
         match addr {
             MR_KBSR => {
-                todo!()
+                todo!(":D")
             }
             _ => {
                 let addr = addr as usize;
@@ -617,7 +618,8 @@ impl VM {
                 }
                 TrapCode::Out => {
                     let content = self.value_from_register(0);
-                    println!("{}", content);
+                    print!("{}", content);
+                    std::io::stdout().flush();
                 }
                 TrapCode::Puts => {
                     let mut addr = self.value_from_register(0);
@@ -627,7 +629,6 @@ impl VM {
                         addr = addr.wrapping_add(1);
                         content = self.memory_read(addr);
                     }
-                    println!("",);
                 }
                 TrapCode::In => {
                     print!("Enter a character:");
@@ -637,7 +638,8 @@ impl VM {
                         .and_then(|result| result.ok())
                         .map(|byte| byte as u8)
                         .unwrap();
-                    println!("{}", input as char);
+                    print!("{}", input as char);
+                    std::io::stdout().flush();
 
                     self.update_register(0, input.into());
                 }
