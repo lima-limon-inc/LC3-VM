@@ -615,7 +615,10 @@ impl VM {
                         .unwrap();
                     self.update_register(0, input);
                 }
-                TrapCode::Out => {}
+                TrapCode::Out => {
+                    let content = self.value_from_register(0);
+                    println!("{}", content);
+                }
                 TrapCode::Puts => {}
                 TrapCode::In => {}
                 TrapCode::Putsp => {}
