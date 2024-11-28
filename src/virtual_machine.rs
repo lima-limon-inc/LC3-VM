@@ -620,7 +620,18 @@ impl VM {
                     println!("{}", content);
                 }
                 TrapCode::Puts => {}
-                TrapCode::In => {}
+                TrapCode::In => {
+                    print!("Enter a character:");
+                    let input: u8 = std::io::stdin()
+                        .bytes()
+                        .next()
+                        .and_then(|result| result.ok())
+                        .map(|byte| byte as u8)
+                        .unwrap();
+                    println!("{}", input as char);
+
+                    self.update_register(0, input.into());
+                }
                 TrapCode::Putsp => {}
                 TrapCode::Halt => self.running = false,
             },
