@@ -608,13 +608,12 @@ impl VM {
             }
             Opcode::Trap { code } => match code {
                 TrapCode::Getc => {
-                    let input: u16 = std::io::stdin()
+                    let input: u8 = std::io::stdin()
                         .bytes()
                         .next()
                         .and_then(|result| result.ok())
-                        .map(|byte| byte as u16)
                         .unwrap();
-                    self.update_register(0, input);
+                    self.update_register(0, input.into());
                 }
                 TrapCode::Out => {
                     let content = self.value_from_register(0);
@@ -625,7 +624,9 @@ impl VM {
                     let mut addr = self.value_from_register(0);
                     let mut content = self.memory_read(addr);
                     while content != 0x0000 {
-                        print!("{}", content);
+                        let c_char: u8 = content.try_into().expect("Unable to cast");
+                        let c_char: char = c_char.into();
+                        print!("{}", c_char);
                         addr = addr.wrapping_add(1);
                         content = self.memory_read(addr);
                     }
