@@ -618,7 +618,7 @@ impl VM {
                 TrapCode::Out => {
                     let content = self.value_from_register(0);
                     print!("{}", content);
-                    std::io::stdout().flush();
+                    std::io::stdout().flush().expect("Hey");
                 }
                 TrapCode::Puts => {
                     let mut addr = self.value_from_register(0);
@@ -630,6 +630,7 @@ impl VM {
                         addr = addr.wrapping_add(1);
                         content = self.memory_read(addr);
                     }
+                    std::io::stdout().flush().expect("Hey");
                 }
                 TrapCode::In => {
                     print!("Enter a character:");
@@ -640,7 +641,7 @@ impl VM {
                         .map(|byte| byte as u8)
                         .unwrap();
                     print!("{}", input as char);
-                    std::io::stdout().flush();
+                    std::io::stdout().flush().expect("Hey");
 
                     self.update_register(0, input.into());
                 }
