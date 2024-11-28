@@ -641,7 +641,19 @@ impl VM {
 
                     self.update_register(0, input.into());
                 }
-                TrapCode::Putsp => {}
+                TrapCode::Putsp => {
+                    let mut addr = self.value_from_register(0);
+                    let mut content = self.memory_read(addr);
+                    while content != 0x0000 {
+                        let first_char = (content & 0b1111_1111_0000_0000) >> 8;
+                        let second_char = content & 0b0000_0000_1111_1111;
+                        print!("{}", first_char);
+                        print!("{}", second_char);
+                        addr = addr.wrapping_add(1);
+                        content = self.memory_read(addr);
+                    }
+                    println!("",);
+                }
                 TrapCode::Halt => self.running = false,
             },
         }
