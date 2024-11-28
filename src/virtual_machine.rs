@@ -619,7 +619,16 @@ impl VM {
                     let content = self.value_from_register(0);
                     println!("{}", content);
                 }
-                TrapCode::Puts => {}
+                TrapCode::Puts => {
+                    let mut addr = self.value_from_register(0);
+                    let mut content = self.memory_read(addr);
+                    while content != 0x0000 {
+                        print!("{}", content);
+                        addr = addr.wrapping_add(1);
+                        content = self.memory_read(addr);
+                    }
+                    println!("",);
+                }
                 TrapCode::In => {
                     print!("Enter a character:");
                     let input: u8 = std::io::stdin()
