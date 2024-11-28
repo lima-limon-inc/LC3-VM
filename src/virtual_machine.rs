@@ -182,17 +182,21 @@ impl VM {
     fn load_bytes(&mut self, bytes: &[u8]) {
         let mut instructions: [u16; MEMORY_MAX] = [0; MEMORY_MAX];
 
-        for (index, byte) in bytes.chunks(2).enumerate() {
+        let mut it = bytes.chunks(2);
+        let orig = it.next().unwrap();
+        let first = orig.get(0).unwrap();
+        let second = orig.get(1).unwrap();
+
+        let addr = u16::from_be_bytes([*first, *second]);
+
+        for (index, byte) in it.enumerate() {
             let first_half = byte.get(0).unwrap();
             let second_half = byte.get(1).unwrap();
             let instruction = u16::from_be_bytes([*first_half, *second_half]);
-            instructions[index] = instruction;
+            let offset = index.wrapping_add(addr as usize);
+            println!("ADDR: {:x}", offset);
+            instructions[offset] = instruction;
         }
-
-        // println!("DONE ",);
-        // for instruction in instructions {
-        //     println!("{}", instruction);
-        // }
     }
 
     pub fn load_program(&mut self, path: &str) -> Result<(), Error> {
