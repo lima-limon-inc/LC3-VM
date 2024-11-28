@@ -606,7 +606,15 @@ impl VM {
                 }
             }
             Opcode::Trap { code } => match code {
-                TrapCode::Getc => {}
+                TrapCode::Getc => {
+                    let input: u16 = std::io::stdin()
+                        .bytes()
+                        .next()
+                        .and_then(|result| result.ok())
+                        .map(|byte| byte as u16)
+                        .unwrap();
+                    self.update_register(0, input);
+                }
                 TrapCode::Out => {}
                 TrapCode::Puts => {}
                 TrapCode::In => {}
