@@ -1,9 +1,11 @@
 use std::cmp::Ordering;
 use std::env;
+use std::fmt;
 use std::fs;
 use std::io;
 use std::io::Bytes;
 use std::io::Error;
+use std::io::Read;
 
 // 2^16. 65536 locations.
 const MEMORY_MAX: usize = 2_usize.pow(16);
@@ -19,7 +21,7 @@ const MR_KBSR: u16 = 0b1111_1110_0000_0000;
 // Keyboard data register
 const MR_KBDR: u16 = 0b1111_1110_0000_0010;
 
-struct VM {
+pub struct VM {
     memory: [u16; MEMORY_MAX],
     r0: u16,
     r1: u16,
@@ -145,6 +147,24 @@ fn test_print(message: &str) {
     }
 }
 
+impl fmt::Debug for VM {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        writeln!(f, "")?;
+        writeln!(f, "R0: {}", self.r0)?;
+        writeln!(f, "R1: {}", self.r1)?;
+        writeln!(f, "R2: {}", self.r2)?;
+        writeln!(f, "R3: {}", self.r3)?;
+        writeln!(f, "R4: {}", self.r4)?;
+        writeln!(f, "R5: {}", self.r5)?;
+        writeln!(f, "R6: {}", self.r6)?;
+        writeln!(f, "R7: {}", self.r7)?;
+        writeln!(f, "RPC: {:x}", self.rpc)?;
+        writeln!(f, "RCOND: {:?}", self.rcond)?;
+        writeln!(f, "RCOND: {:?}", self.rcond)?;
+        writeln!(f, "Running: {:?}", self.running)
+    }
+}
+
 impl VM {
     pub fn new() -> VM {
         let memory = [0; MEMORY_MAX];
@@ -175,6 +195,18 @@ impl VM {
             let instruction = self.load_instruction();
             self.rpc = self.rpc.wrapping_add(1);
             let operation = self.decode_instruction(instruction);
+            if cfg!(debug_assertions) {
+                print!("{}[2J", 27 as char);
+                println!("{:?}", self);
+                println!("Current instruction {:?}", operation);
+                println!("Press any key for next instruction");
+                let input: u16 = std::io::stdin()
+                    .bytes()
+                    .next()
+                    .and_then(|result| result.ok())
+                    .map(|byte| byte as u16)
+                    .unwrap();
+            }
             self.execute(operation);
         }
     }
