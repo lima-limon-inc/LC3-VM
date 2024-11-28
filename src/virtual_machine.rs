@@ -679,7 +679,7 @@ impl VM {
                         addr = addr.wrapping_add(1);
                         content = self.memory_read(addr);
                     }
-                    println!("",);
+                    std::io::stdout().flush().expect("Hey");
                 }
                 TrapCode::Halt => self.running = false,
             },
