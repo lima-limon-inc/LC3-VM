@@ -570,7 +570,7 @@ impl VM {
                 };
                 let result = second_value.wrapping_add(sr1_val);
 
-                self.update_register(dr, result);
+                self.update_register(dr, result)?;
             }
             Opcode::Ldi {
                 dr,
@@ -579,12 +579,12 @@ impl VM {
                 let pointer = self.rpc.wrapping_add(offset);
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
-                self.update_register(dr, value);
+                self.update_register(dr, value)?;
             }
             Opcode::Ld { dr, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
                 let value = self.memory_read(addr);
-                self.update_register(dr, value);
+                self.update_register(dr, value)?;
             }
             Opcode::And {
                 dr,
@@ -598,13 +598,13 @@ impl VM {
                 };
 
                 let result = sr1_val & second_value;
-                self.update_register(dr, result);
+                self.update_register(dr, result)?;
             }
             Opcode::Not { dr, sr } => {
                 let value = self.value_from_register(sr)?;
                 let notvalue = !value;
 
-                self.update_register(dr, notvalue);
+                self.update_register(dr, notvalue)?;
             }
             Opcode::Str {
                 sr,
@@ -619,13 +619,13 @@ impl VM {
                 let pointer = self.rpc.wrapping_add(offset);
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
-                self.update_register(sr, value);
+                self.update_register(sr, value)?;
             }
             Opcode::Ldr { dr, base_r, offset } => {
                 let base_value = self.value_from_register(base_r)?;
                 let addr = base_value.wrapping_add(offset);
                 let value = self.memory_read(addr);
-                self.update_register(dr, value);
+                self.update_register(dr, value)?;
             }
             Opcode::St { sr, offset } => {
                 let value = self.value_from_register(sr)?;
@@ -636,7 +636,7 @@ impl VM {
             Opcode::Res => return Err(VMError::UnsupportedInstruction),
             Opcode::Lea { dr, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
-                self.update_register(dr, addr);
+                self.update_register(dr, addr)?;
             }
             Opcode::Br { n, z, p, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
@@ -666,7 +666,7 @@ impl VM {
                         .and_then(|result| result.ok())
                         .unwrap();
 
-                    self.update_register(0, input.into());
+                    self.update_register(0, input.into())?;
                 }
                 TrapCode::Out => {
                     let content = self.value_from_register(0)?;
@@ -698,7 +698,7 @@ impl VM {
                     print!("{}", input as char);
                     std::io::stdout().flush().expect("Hey");
 
-                    self.update_register(0, input.into());
+                    self.update_register(0, input.into())?;
                 }
                 TrapCode::Putsp => {
                     let mut addr = self.value_from_register(0)?;
