@@ -151,6 +151,8 @@ enum TrapCode {
 pub enum VMError {
     #[error("File does not exist.")]
     FileDoesNotExist(#[from] std::io::Error),
+    #[error("Unrecognized operation code")]
+    UnknownOperand,
     #[error("unknown data store error")]
     Unknown,
 }
@@ -208,13 +210,13 @@ impl VM {
         c_char
     }
 
-    pub fn run(&mut self) {
+    pub fn run(&mut self) -> Result<(), VMError> {
         self.running = true;
 
         while self.running {
             let instruction = self.load_instruction();
             self.rpc = self.rpc.wrapping_add(1);
-            let operation = self.decode_instruction(instruction);
+            let operation = self.decode_instruction(instruction)?;
             if cfg!(debug_assertions) {
                 print!("{}[2J", 27 as char);
                 println!("{:?}", self);
@@ -229,6 +231,8 @@ impl VM {
             }
             self.execute(operation);
         }
+
+        Ok(())
     }
 
     fn load_bytes(&mut self, bytes: &[u8]) {
@@ -286,7 +290,7 @@ impl VM {
             .expect("OUT OF MEMORY RANGE. Segmentation fault?")
     }
 
-    fn decode_instruction(&self, binary_repr: u16) -> Opcode {
+    fn decode_instruction(&self, binary_repr: u16) -> Result<Opcode, VMError> {
         // Removes the arguments from the instruction, leaving only the operator
         let op = binary_repr >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments
@@ -302,7 +306,7 @@ impl VM {
 
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let offset = sign_extend(offset9, 9);
-                Opcode::Br { n, z, p, offset }
+                Ok(Opcode::Br { n, z, p, offset })
             }
             // ADD
             0b0001 => {
@@ -326,11 +330,11 @@ impl VM {
 
                 let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
 
-                Opcode::Add {
+                Ok(Opcode::Add {
                     dr,
                     sr1,
                     second_arg,
-                }
+                })
             }
             // AND
             0b0101 => {
@@ -353,16 +357,16 @@ impl VM {
 
                 let sr1 = (args & 0b0000_0001_1100_0000) >> 6;
 
-                Opcode::And {
+                Ok(Opcode::And {
                     dr,
                     sr1,
                     second_arg,
-                }
+                })
             }
             // JMP / RET
             0b1100 => {
                 let base_r = (args & 0b0000_0001_1100_0000) >> 6;
-                Opcode::Jmp { base_r }
+                Ok(Opcode::Jmp { base_r })
             }
             // JSR / JSRR
             0b0100 => {
@@ -379,21 +383,21 @@ impl VM {
                     }
                     _ => panic!("ERROR WHILE PARSING"),
                 };
-                Opcode::Jsr { addr }
+                Ok(Opcode::Jsr { addr })
             }
             // LD
             0b0010 => {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let value = sign_extend(offset9, 9);
-                Opcode::Ld { dr, addr: value }
+                Ok(Opcode::Ld { dr, addr: value })
             }
             // LDI
             0b1010 => {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let pointer = sign_extend(offset9, 9);
-                Opcode::Ldi { dr, pointer }
+                Ok(Opcode::Ldi { dr, pointer })
             }
             // LDR
             0b0110 => {
@@ -401,14 +405,14 @@ impl VM {
                 let base_r = (args & 0b0000_0001_1100_0000) >> 6;
                 let offset6 = args & 0b0000_0000_0011_1111;
                 let offset = sign_extend(offset6, 6);
-                Opcode::Ldr { dr, base_r, offset }
+                Ok(Opcode::Ldr { dr, base_r, offset })
             }
             // LEA
             0b1110 => {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let offset = sign_extend(offset9, 9);
-                Opcode::Lea { dr, offset }
+                Ok(Opcode::Lea { dr, offset })
             }
             // NOT
             0b1001 => {
@@ -417,23 +421,23 @@ impl VM {
                 let spec = args & 0b0000_0000_0011_1111;
 
                 debug_assert_eq!(spec, 0b0000_0000_0011_1111);
-                Opcode::Not { dr, sr }
+                Ok(Opcode::Not { dr, sr })
             }
             // RTI
-            0b1000 => Opcode::Rti,
+            0b1000 => Ok(Opcode::Rti),
             // ST
             0b0011 => {
                 let sr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let offset = sign_extend(offset9, 9);
-                Opcode::St { sr, offset }
+                Ok(Opcode::St { sr, offset })
             }
             // STI
             0b1011 => {
                 let sr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
                 let offset = sign_extend(offset9, 9);
-                Opcode::Sti { sr, offset }
+                Ok(Opcode::Sti { sr, offset })
             }
             // STR
             0b0111 => {
@@ -441,11 +445,11 @@ impl VM {
                 let base_reg = (args & 0b0000_0001_1100_0000) >> 6;
                 let offset6 = args & 0b0000_0000_0011_1111;
                 let offset = sign_extend(offset6, 6);
-                Opcode::Str {
+                Ok(Opcode::Str {
                     sr,
                     base_reg,
                     offset,
-                }
+                })
             }
             // TRAP
             0b1111 => {
@@ -459,11 +463,11 @@ impl VM {
                     0x25 => TrapCode::Halt,
                     _ => panic!("Non existant trap code"),
                 };
-                Opcode::Trap { code }
+                Ok(Opcode::Trap { code })
             }
             // Reserved
-            0b1101 => Opcode::Res,
-            _ => panic!("Unrecognized operation code"),
+            0b1101 => Ok(Opcode::Res),
+            _ => Err(VMError::UnknownOperand),
         }
     }
 
