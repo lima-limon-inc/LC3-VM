@@ -4,20 +4,31 @@ mod virtual_machine;
 
 use crate::virtual_machine::VMError;
 use crate::virtual_machine::VM;
+use thiserror::Error;
 
-fn main() -> Result<(), VMError> {
-    let mut vm = VM::new();
+#[derive(Error, Debug)]
+enum CLIError {
+    #[error(
+        "Missing arguments. The project should be run like\n
+cargo run path/to/.obj T|F"
+    )]
+    MissignArguments,
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().collect();
-    let executable_path = args.get(1).unwrap();
+    let executable_path = args.get(1).ok_or(CLIError::MissignArguments)?;
+    let debug = matches!(
+        args.get(2)
+            .ok_or(CLIError::MissignArguments)?
+            .to_ascii_lowercase()
+            .as_str(),
+        "t" | "true"
+    );
+
+    let mut vm = VM::new(debug);
 
     vm.load_program(executable_path)?;
-    // if let Ok(a) = a {
-    //     println!("Hello, world!");
-    vm.run();
+    vm.run()?;
     Ok(())
-    //     println!("DONE");
-    // } else {
-    //     panic!();
-    // }
-    // vm.run();
 }
