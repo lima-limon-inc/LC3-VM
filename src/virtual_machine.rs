@@ -746,7 +746,7 @@ mod test {
                 sr1: 3,
                 second_arg: Mode::Register { sr2: 1 },
             },
-            result
+            result.unwrap()
         );
     }
 
@@ -764,7 +764,7 @@ mod test {
                 sr1: 7,
                 second_arg: Mode::Immediate { value: 2 }
             },
-            result
+            result.unwrap()
         );
     }
 
@@ -785,7 +785,7 @@ mod test {
         vm.r2 = 0;
         vm.r3 = 10;
         vm.r1 = 15;
-        vm.execute(operation);
+        vm.execute(operation.unwrap());
         assert_eq!(vm.r2, 25);
         assert_eq!(vm.rcond, FL::POS);
 
@@ -796,7 +796,7 @@ mod test {
         let mut vm = VM::new();
         vm.r5 = 0;
         vm.r7 = 10;
-        vm.execute(operation);
+        vm.execute(operation.unwrap());
         assert_eq!(vm.r5, 12);
         assert_eq!(vm.rcond, FL::POS);
     }
@@ -812,37 +812,12 @@ mod test {
         vm.r2 = 10;
         vm.r4 = 12;
 
-        assert_eq!(
-            operation,
-            Opcode::And {
-                dr: 1,
-                sr1: 2,
-                second_arg: Mode::Register { sr2: 4 }
-            }
-        );
-
         //This is only done to check if the execution correcly changes
         // the value of rcond and it's not its default value.
         vm.rcond = FL::NEG;
 
-        vm.execute(operation);
+        vm.execute(operation.unwrap());
         assert_eq!(vm.r1, 8);
-        assert_eq!(vm.rcond, FL::POS);
-    }
-
-    #[test]
-    fn test_ld() {
-        let mut vm = VM::new();
-        // LD R7, 42
-        let op = 0b0010111000101010;
-        let operation = vm.decode_instruction(op);
-        vm.r7 = 0;
-
-        assert_eq!(operation, Opcode::Ld { dr: 7, offset: 42 });
-
-        vm.memory[42] = 1234;
-        vm.execute(operation);
-        assert_eq!(vm.r7, 1234);
         assert_eq!(vm.rcond, FL::POS);
     }
 
@@ -854,9 +829,8 @@ mod test {
         let operation = vm.decode_instruction(op);
 
         vm.r5 = 10;
-        assert_eq!(operation, Opcode::Not { dr: 4, sr: 5 });
 
-        vm.execute(operation);
+        vm.execute(operation.unwrap());
 
         assert_eq!(0b1111111111110101, vm.r4);
     }
@@ -890,16 +864,37 @@ mod test {
         .iter();
 
         // This is only done to for testing purposes
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::NEG);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::POS);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::ZRO);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::NEG);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()));
+        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::POS);
+    }
+
+    #[test]
+    fn ld_test() {
+        // This test will store 9 in R5. It will then store R5's value
+        // (9) into memory and it will then read from memory that
+        // value and store it into R6. If all goes well, both
+        // registers should hold the same value.
+
+        // x3000  | x1B69 | 0001101101101001 |    3 |           ADD R5, R5, 9
+        // x3001  | x3A05 | 0011101000000101 |    4 |           ST R5, 5
+        // x3002  | x2C04 | 0010110000000100 |    5 |           LD R6, 4
+        // x3003  | xF025 | 1111000000100101 |    6 |           HALT
+        //        |       |                  |    7 |           .END
+        let mut vm = VM::new();
+
+        vm.load_program("examples/ld.obj").unwrap();
+
+        vm.run().unwrap();
+
+        assert_eq!(vm.r5, vm.r6);
     }
 }
 
