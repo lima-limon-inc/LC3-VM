@@ -170,6 +170,8 @@ pub enum VMError {
     UnsupportedInstruction,
     #[error("Non existent register")]
     NonExistentRegister,
+    #[error("Flush Error")]
+    FlushError,
     #[error("unknown data store error")]
     Unknown,
 }
@@ -217,7 +219,7 @@ impl VM {
         }
     }
 
-    fn load_instruction(&mut self) -> u16 {
+    fn load_instruction(&mut self) -> Result<u16, VMError> {
         self.memory_read(self.rpc)
     }
 
@@ -232,7 +234,7 @@ impl VM {
         self.running = true;
 
         while self.running {
-            let instruction = self.load_instruction();
+            let instruction = self.load_instruction()?;
             self.rpc = self.rpc.wrapping_add(1);
             let operation = self.decode_instruction(instruction)?;
             if self.debug {
@@ -246,7 +248,7 @@ impl VM {
                     .and_then(|result| result.ok())
                     .is_some();
             }
-            self.execute(operation);
+            self.execute(operation)?;
         }
 
         Ok(())
@@ -318,16 +320,17 @@ impl VM {
         self.memory[addr] = value;
     }
 
-    fn memory_read(&mut self, addr: u16) -> u16 {
+    fn memory_read(&mut self, addr: u16) -> Result<u16, VMError> {
         if addr == MR_KBSR {
             self.check_key();
         }
 
         let addr = addr as usize;
-        *self
-            .memory
-            .get(addr)
-            .expect("OUT OF MEMORY RANGE. Segmentation fault?")
+        if let Some(value) = self.memory.get(addr) {
+            Ok(*value)
+        } else {
+            Err(VMError::OutOfRangeError)
+        }
     }
 
     fn decode_instruction(&self, binary_repr: u16) -> Result<Opcode, VMError> {
@@ -577,13 +580,13 @@ impl VM {
                 pointer: offset,
             } => {
                 let pointer = self.rpc.wrapping_add(offset);
-                let addr = self.memory_read(pointer);
-                let value = self.memory_read(addr);
+                let addr = self.memory_read(pointer)?;
+                let value = self.memory_read(addr)?;
                 self.update_register(dr, value)?;
             }
             Opcode::Ld { dr, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
-                let value = self.memory_read(addr);
+                let value = self.memory_read(addr)?;
                 self.update_register(dr, value)?;
             }
             Opcode::And {
@@ -617,14 +620,14 @@ impl VM {
             }
             Opcode::Sti { sr, offset } => {
                 let pointer = self.rpc.wrapping_add(offset);
-                let addr = self.memory_read(pointer);
-                let value = self.memory_read(addr);
+                let addr = self.memory_read(pointer)?;
+                let value = self.memory_read(addr)?;
                 self.update_register(sr, value)?;
             }
             Opcode::Ldr { dr, base_r, offset } => {
                 let base_value = self.value_from_register(base_r)?;
                 let addr = base_value.wrapping_add(offset);
-                let value = self.memory_read(addr);
+                let value = self.memory_read(addr)?;
                 self.update_register(dr, value)?;
             }
             Opcode::St { sr, offset } => {
@@ -673,20 +676,20 @@ impl VM {
                     let char_repr = Self::u16_to_char(content)?;
 
                     print!("{}", char_repr);
-                    std::io::stdout().flush().expect("Hey");
+                    std::io::stdout().flush().map_err(|_| VMError::FlushError)?;
                 }
                 TrapCode::Puts => {
                     let mut addr = self.value_from_register(0)?;
-                    let mut content = self.memory_read(addr);
+                    let mut content = self.memory_read(addr)?;
 
                     while content != 0x0000 {
                         let c_char = Self::u16_to_char(content)?;
                         print!("{}", c_char);
 
                         addr = addr.wrapping_add(1);
-                        content = self.memory_read(addr);
+                        content = self.memory_read(addr)?;
                     }
-                    std::io::stdout().flush().expect("Hey");
+                    std::io::stdout().flush().map_err(|_| VMError::FlushError)?;
                 }
                 TrapCode::In => {
                     print!("Enter a character:");
@@ -696,13 +699,13 @@ impl VM {
                         .and_then(|result| result.ok())
                         .unwrap();
                     print!("{}", input as char);
-                    std::io::stdout().flush().expect("Hey");
+                    std::io::stdout().flush().map_err(|_| VMError::FlushError)?;
 
                     self.update_register(0, input.into())?;
                 }
                 TrapCode::Putsp => {
                     let mut addr = self.value_from_register(0)?;
-                    let mut content = self.memory_read(addr);
+                    let mut content = self.memory_read(addr)?;
 
                     while content != 0x0000 {
                         let first_char = (content & 0b1111_1111_0000_0000) >> 8;
@@ -711,9 +714,9 @@ impl VM {
                         print!("{}", second_char);
 
                         addr = addr.wrapping_add(1);
-                        content = self.memory_read(addr);
+                        content = self.memory_read(addr)?;
                     }
-                    std::io::stdout().flush().expect("Hey");
+                    std::io::stdout().flush().map_err(|_| VMError::FlushError)?;
                 }
                 TrapCode::Halt => {
                     self.running = false;
