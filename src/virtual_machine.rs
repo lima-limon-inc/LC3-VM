@@ -292,10 +292,6 @@ impl VM {
         // Removes the operator from the instruction, leaving only the arguments
         let args = binary_repr & ARGUMENT_MASK;
 
-        // NOTE: Whilst writing constants inside a code block
-        // is not very orthodox, I believe it remains a good
-        // balance between avoiding magic numbers and keeping
-        // the logic "local".
         match op {
             // BR
             0b0000 => {
