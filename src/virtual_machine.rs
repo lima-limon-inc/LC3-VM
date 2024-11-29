@@ -150,7 +150,7 @@ enum TrapCode {
 #[derive(Error, Debug)]
 pub enum VMError {
     #[error("File does not exist.")]
-    FileDoesNotExist(),
+    FileDoesNotExist(#[from] std::io::Error),
     #[error("unknown data store error")]
     Unknown,
 }
@@ -253,7 +253,7 @@ impl VM {
     }
 
     pub fn load_program(&mut self, path: &str) -> Result<(), VMError> {
-        let bytes = &std::fs::read(path).map_err(|_| VMError::FileDoesNotExist())?;
+        let bytes = &std::fs::read(path).map_err(VMError::from)?;
         self.load_bytes(bytes);
         Ok(())
     }
