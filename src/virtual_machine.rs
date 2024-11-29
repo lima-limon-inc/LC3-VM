@@ -168,6 +168,8 @@ pub enum VMError {
     CastingError,
     #[error("Not supported instruction")]
     UnsupportedInstruction,
+    #[error("Non existent register")]
+    NonExistentRegister,
     #[error("unknown data store error")]
     Unknown,
 }
@@ -507,10 +509,11 @@ impl VM {
         }
     }
 
-    fn update_register(&mut self, register_index: u16, value: u16) {
-        let register = self.get_mut_register(register_index);
+    fn update_register(&mut self, register_index: u16, value: u16) -> Result<(), VMError> {
+        let register = self.get_mut_register(register_index)?;
         *register = value;
         self.update_flags(value);
+        Ok(())
     }
 
     fn update_flags(&mut self, value: u16) {
@@ -538,18 +541,18 @@ impl VM {
         }
     }
 
-    fn get_mut_register(&mut self, reg_num: u16) -> &mut u16 {
+    fn get_mut_register(&mut self, reg_num: u16) -> Result<&mut u16, VMError> {
         match reg_num {
-            0 => &mut self.r0,
-            1 => &mut self.r1,
-            2 => &mut self.r2,
-            3 => &mut self.r3,
-            4 => &mut self.r4,
-            5 => &mut self.r5,
-            6 => &mut self.r6,
-            7 => &mut self.r7,
-            8 => &mut self.rpc,
-            _ => panic!("Invalid register"),
+            0 => Ok(&mut self.r0),
+            1 => Ok(&mut self.r1),
+            2 => Ok(&mut self.r2),
+            3 => Ok(&mut self.r3),
+            4 => Ok(&mut self.r4),
+            5 => Ok(&mut self.r5),
+            6 => Ok(&mut self.r6),
+            7 => Ok(&mut self.r7),
+            8 => Ok(&mut self.rpc),
+            _ => Err(VMError::NonExistentRegister),
         }
     }
 
