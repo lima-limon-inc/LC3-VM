@@ -43,13 +43,13 @@ pub struct VM {
     debug: bool,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum Mode {
     Immediate { value: u16 },
     Register { sr2: u16 },
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum Opcode {
     // branch
     Br {
@@ -138,7 +138,7 @@ enum FL {
     NEG = 1 << 2,
 }
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Copy)]
 enum TrapCode {
     Getc,
     Out,
@@ -164,6 +164,8 @@ pub enum VMError {
     InstructionLengthError,
     #[error("Trying to read memory out of the provided 65536 locations")]
     OutOfRangeError,
+    #[error("Error while casting")]
+    CastingError,
     #[error("unknown data store error")]
     Unknown,
 }
@@ -216,10 +218,10 @@ impl VM {
     }
 
     // QUESTION: Maybe implement from?
-    fn u16_to_char(tochar: u16) -> char {
-        let right_bits: u8 = tochar as u8;
+    fn u16_to_char(tochar: u16) -> Result<char, VMError> {
+        let right_bits: u8 = tochar.try_into().map_err(|_| VMError::CastingError)?;
         let c_char: char = right_bits.into();
-        c_char
+        Ok(c_char)
     }
 
     pub fn run(&mut self) -> Result<(), VMError> {
@@ -549,7 +551,7 @@ impl VM {
         }
     }
 
-    fn execute(&mut self, operation: Opcode) {
+    fn execute(&mut self, operation: Opcode) -> Result<(), VMError> {
         match operation {
             Opcode::Add {
                 dr,
@@ -675,7 +677,7 @@ impl VM {
                 }
                 TrapCode::Out => {
                     let content = self.value_from_register(0);
-                    let char_repr = Self::u16_to_char(content);
+                    let char_repr = Self::u16_to_char(content)?;
                     print!("{}", char_repr);
                     std::io::stdout().flush().expect("Hey");
                 }
