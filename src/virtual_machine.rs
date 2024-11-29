@@ -66,7 +66,7 @@ enum Opcode {
     /* load */
     Ld {
         dr: u16,
-        addr: u16,
+        offset: u16,
     },
     /* store register */
     Str {
@@ -419,8 +419,8 @@ impl VM {
             0b0010 => {
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
                 let offset9 = args & 0b0000_0001_1111_1111;
-                let value = sign_extend(offset9, 9);
-                Ok(Opcode::Ld { dr, addr: value })
+                let offset = sign_extend(offset9, 9);
+                Ok(Opcode::Ld { dr, offset })
             }
             // LDI
             0b1010 => {
@@ -575,7 +575,8 @@ impl VM {
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
-            Opcode::Ld { dr, addr } => {
+            Opcode::Ld { dr, offset } => {
+                let addr = self.rpc.wrapping_add(offset);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
@@ -658,10 +659,7 @@ impl VM {
                 self.r7 = self.rpc;
                 self.rpc = match addr {
                     Mode::Register { sr2 } => sr2,
-                    Mode::Immediate { value } => {
-                        let new_pos = self.rpc.wrapping_add(value);
-                        new_pos
-                    }
+                    Mode::Immediate { value } => self.rpc.wrapping_add(value),
                 }
             }
             Opcode::Trap { code } => match code {
@@ -838,7 +836,7 @@ mod test {
         let operation = vm.decode_instruction(op);
         vm.r7 = 0;
 
-        assert_eq!(operation, Opcode::Ld { dr: 7, addr: 42 });
+        assert_eq!(operation, Opcode::Ld { dr: 7, offset: 42 });
 
         vm.memory[42] = 1234;
         vm.execute(operation);
