@@ -601,11 +601,6 @@ impl VM {
                 };
 
                 let result = sr1_val & second_value;
-
-                //TODO: Should I do something about "he condition
-                // codes are set, based on whether the binary value
-                // produced, taken as a 2’s complement integer, is
-                // negative, zero, or positive"
                 self.update_register(dr, result);
             }
             Opcode::Not { dr, sr } => {
