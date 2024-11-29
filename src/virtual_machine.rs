@@ -569,6 +569,7 @@ impl VM {
                 let result = second_value.wrapping_add(sr1_val);
 
                 self.update_register(dr, result);
+                Ok(())
             }
             Opcode::Ldi {
                 dr,
@@ -578,11 +579,13 @@ impl VM {
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
+                Ok(())
             }
             Opcode::Ld { dr, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
+                Ok(())
             }
             Opcode::And {
                 dr,
@@ -605,15 +608,15 @@ impl VM {
                 // produced, taken as a 2’s complement integer, is
                 // negative, zero, or positive"
                 self.update_register(dr, result);
+                Ok(())
             }
-
             Opcode::Not { dr, sr } => {
                 let value = self.value_from_register(sr);
                 let notvalue = !value;
 
                 self.update_register(dr, notvalue);
+                Ok(())
             }
-
             Opcode::Str {
                 sr,
                 base_reg,
@@ -622,29 +625,34 @@ impl VM {
                 let content = self.value_from_register(sr);
                 let addr = self.value_from_register(base_reg).wrapping_add(offset);
                 self.memory_write(addr, content);
+                Ok(())
             }
             Opcode::Sti { sr, offset } => {
                 let pointer = self.rpc.wrapping_add(offset);
                 let addr = self.memory_read(pointer);
                 let value = self.memory_read(addr);
                 self.update_register(sr, value);
+                Ok(())
             }
             Opcode::Ldr { dr, base_r, offset } => {
                 let base_value = self.value_from_register(base_r);
                 let addr = base_value.wrapping_add(offset);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
+                Ok(())
             }
             Opcode::St { sr, offset } => {
                 let value = self.value_from_register(sr);
                 let addr = self.rpc.wrapping_add(offset);
                 self.memory_write(addr, value);
+                Ok(())
             }
             Opcode::Rti => panic!("RTI instruction not supported."),
             Opcode::Res => panic!("RESERVED instruction not supported."),
             Opcode::Lea { dr, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
                 self.update_register(dr, addr);
+                Ok(())
             }
             Opcode::Br { n, z, p, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
@@ -654,17 +662,20 @@ impl VM {
                 {
                     self.rpc = addr;
                 }
+                Ok(())
             }
             Opcode::Jmp { base_r } => {
                 let addr = self.value_from_register(base_r);
                 self.rpc = addr;
+                Ok(())
             }
             Opcode::Jsr { addr } => {
                 self.r7 = self.rpc;
                 self.rpc = match addr {
                     Mode::Register { sr2 } => sr2,
                     Mode::Immediate { value } => self.rpc.wrapping_add(value),
-                }
+                };
+                Ok(())
             }
             Opcode::Trap { code } => match code {
                 TrapCode::Getc => {
@@ -673,24 +684,33 @@ impl VM {
                         .next()
                         .and_then(|result| result.ok())
                         .unwrap();
+
                     self.update_register(0, input.into());
+                    Ok(())
                 }
                 TrapCode::Out => {
                     let content = self.value_from_register(0);
                     let char_repr = Self::u16_to_char(content)?;
+
                     print!("{}", char_repr);
                     std::io::stdout().flush().expect("Hey");
+
+                    Ok(())
                 }
                 TrapCode::Puts => {
                     let mut addr = self.value_from_register(0);
                     let mut content = self.memory_read(addr);
+
                     while content != 0x0000 {
-                        let c_char = Self::u16_to_char(content);
+                        let c_char = Self::u16_to_char(content)?;
                         print!("{}", c_char);
+
                         addr = addr.wrapping_add(1);
                         content = self.memory_read(addr);
                     }
                     std::io::stdout().flush().expect("Hey");
+
+                    Ok(())
                 }
                 TrapCode::In => {
                     print!("Enter a character:");
@@ -698,27 +718,34 @@ impl VM {
                         .bytes()
                         .next()
                         .and_then(|result| result.ok())
-                        .map(|byte| byte as u8)
                         .unwrap();
                     print!("{}", input as char);
                     std::io::stdout().flush().expect("Hey");
 
                     self.update_register(0, input.into());
+                    Ok(())
                 }
                 TrapCode::Putsp => {
                     let mut addr = self.value_from_register(0);
                     let mut content = self.memory_read(addr);
+
                     while content != 0x0000 {
                         let first_char = (content & 0b1111_1111_0000_0000) >> 8;
                         let second_char = content & 0b0000_0000_1111_1111;
                         print!("{}", first_char);
                         print!("{}", second_char);
+
                         addr = addr.wrapping_add(1);
                         content = self.memory_read(addr);
                     }
                     std::io::stdout().flush().expect("Hey");
+
+                    Ok(())
                 }
-                TrapCode::Halt => self.running = false,
+                TrapCode::Halt => {
+                    self.running = false;
+                    Ok(())
+                }
             },
         }
     }
