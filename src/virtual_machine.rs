@@ -166,6 +166,8 @@ pub enum VMError {
     OutOfRangeError,
     #[error("Error while casting")]
     CastingError,
+    #[error("Not supported instruction")]
+    UnsupportedInstruction,
     #[error("unknown data store error")]
     Unknown,
 }
@@ -638,8 +640,8 @@ impl VM {
                 let addr = self.rpc.wrapping_add(offset);
                 self.memory_write(addr, value);
             }
-            Opcode::Rti => panic!("RTI instruction not supported."),
-            Opcode::Res => panic!("RESERVED instruction not supported."),
+            Opcode::Rti => return Err(VMError::UnsupportedInstruction),
+            Opcode::Res => return Err(VMError::UnsupportedInstruction),
             Opcode::Lea { dr, offset } => {
                 let addr = self.rpc.wrapping_add(offset);
                 self.update_register(dr, addr);
