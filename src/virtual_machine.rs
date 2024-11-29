@@ -225,13 +225,12 @@ impl VM {
                 print!("{}[2J", 27 as char);
                 println!("{:?}", self);
                 println!("Current instruction {:?}", operation);
-                println!("Press any key for next instruction");
-                let _: u16 = std::io::stdin()
+                println!("Press ENTER for next instruction");
+                std::io::stdin()
                     .bytes()
                     .next()
                     .and_then(|result| result.ok())
-                    .map(|byte| byte as u16)
-                    .unwrap();
+                    .is_some();
             }
             self.execute(operation);
         }
