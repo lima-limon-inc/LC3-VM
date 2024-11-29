@@ -157,6 +157,12 @@ pub enum VMError {
     UnknownMode(u16),
     #[error("Unrecognized trapcode")]
     UnknownTrapcode(u16),
+    #[error("Failed to load the program into memory")]
+    LoadError(String),
+    #[error("Instruction is not 16 bits long")]
+    InstructionLengthError,
+    #[error("Trying to read memory out of the provided 65536 locations")]
+    OutOfRangeError,
     #[error("unknown data store error")]
     Unknown,
 }
@@ -238,25 +244,48 @@ impl VM {
         Ok(())
     }
 
-    fn load_bytes(&mut self, bytes: &[u8]) {
+    fn load_bytes(&mut self, bytes: &[u8]) -> Result<(), VMError> {
         let mut instructions: [u16; MEMORY_MAX] = [0; MEMORY_MAX];
 
         let mut it = bytes.chunks(2);
-        let orig = it.next().unwrap();
-        let first = orig.get(0).unwrap();
-        let second = orig.get(1).unwrap();
+        let Some(orig) = it.next() else {
+            return Err(VMError::LoadError(String::from(
+                "File does not indicate initial memory location",
+            )));
+        };
+
+        let Some(first) = orig.first() else {
+            return Err(VMError::LoadError(String::from(
+                "File does not indicate initial memory location",
+            )));
+        };
+        let Some(second) = orig.get(1) else {
+            return Err(VMError::LoadError(String::from(
+                "File does not indicate initial memory location",
+            )));
+        };
 
         let addr = u16::from_be_bytes([*first, *second]);
 
         for (index, byte) in it.enumerate() {
-            let first_half = byte.get(0).unwrap();
-            let second_half = byte.get(1).unwrap();
+            let Some(first_half) = byte.first() else {
+                return Err(VMError::InstructionLengthError);
+            };
+            let Some(second_half) = byte.get(1) else {
+                return Err(VMError::InstructionLengthError);
+            };
             let instruction = u16::from_be_bytes([*first_half, *second_half]);
-            let offset = index.wrapping_add(addr as usize);
-            instructions[offset] = instruction;
+            let addr: usize = addr.into();
+            let offset: usize = index.wrapping_add(addr);
+            if let Some(memory_cell) = instructions.get_mut(offset) {
+                *memory_cell = instruction;
+            } else {
+                return Err(VMError::InstructionLengthError);
+            }
         }
 
         self.memory = instructions;
+        Ok(())
     }
 
     pub fn load_program(&mut self, path: &str) -> Result<(), VMError> {
