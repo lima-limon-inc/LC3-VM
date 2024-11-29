@@ -526,18 +526,18 @@ impl VM {
         }
     }
 
-    fn value_from_register(&self, reg_num: u16) -> u16 {
+    fn value_from_register(&self, reg_num: u16) -> Result<u16, VMError> {
         match reg_num {
-            0 => self.r0,
-            1 => self.r1,
-            2 => self.r2,
-            3 => self.r3,
-            4 => self.r4,
-            5 => self.r5,
-            6 => self.r6,
-            7 => self.r7,
-            8 => self.rpc,
-            _ => panic!("Invalid register"),
+            0 => Ok(self.r0),
+            1 => Ok(self.r1),
+            2 => Ok(self.r2),
+            3 => Ok(self.r3),
+            4 => Ok(self.r4),
+            5 => Ok(self.r5),
+            6 => Ok(self.r6),
+            7 => Ok(self.r7),
+            8 => Ok(self.rpc),
+            _ => Err(VMError::NonExistentRegister),
         }
     }
 
@@ -563,10 +563,10 @@ impl VM {
                 sr1,
                 second_arg,
             } => {
-                let sr1_val = self.value_from_register(sr1);
+                let sr1_val = self.value_from_register(sr1)?;
                 let second_value = match second_arg {
                     Mode::Immediate { value } => value,
-                    Mode::Register { sr2 } => self.value_from_register(sr2),
+                    Mode::Register { sr2 } => self.value_from_register(sr2)?,
                 };
                 let result = second_value.wrapping_add(sr1_val);
 
@@ -591,17 +591,17 @@ impl VM {
                 sr1,
                 second_arg,
             } => {
-                let sr1_val = self.value_from_register(sr1);
+                let sr1_val = self.value_from_register(sr1)?;
                 let second_value = match second_arg {
                     Mode::Immediate { value } => value,
-                    Mode::Register { sr2 } => self.value_from_register(sr2),
+                    Mode::Register { sr2 } => self.value_from_register(sr2)?,
                 };
 
                 let result = sr1_val & second_value;
                 self.update_register(dr, result);
             }
             Opcode::Not { dr, sr } => {
-                let value = self.value_from_register(sr);
+                let value = self.value_from_register(sr)?;
                 let notvalue = !value;
 
                 self.update_register(dr, notvalue);
@@ -611,8 +611,8 @@ impl VM {
                 base_reg,
                 offset,
             } => {
-                let content = self.value_from_register(sr);
-                let addr = self.value_from_register(base_reg).wrapping_add(offset);
+                let content = self.value_from_register(sr)?;
+                let addr = self.value_from_register(base_reg)?.wrapping_add(offset);
                 self.memory_write(addr, content);
             }
             Opcode::Sti { sr, offset } => {
@@ -622,13 +622,13 @@ impl VM {
                 self.update_register(sr, value);
             }
             Opcode::Ldr { dr, base_r, offset } => {
-                let base_value = self.value_from_register(base_r);
+                let base_value = self.value_from_register(base_r)?;
                 let addr = base_value.wrapping_add(offset);
                 let value = self.memory_read(addr);
                 self.update_register(dr, value);
             }
             Opcode::St { sr, offset } => {
-                let value = self.value_from_register(sr);
+                let value = self.value_from_register(sr)?;
                 let addr = self.rpc.wrapping_add(offset);
                 self.memory_write(addr, value);
             }
@@ -648,7 +648,7 @@ impl VM {
                 }
             }
             Opcode::Jmp { base_r } => {
-                let addr = self.value_from_register(base_r);
+                let addr = self.value_from_register(base_r)?;
                 self.rpc = addr;
             }
             Opcode::Jsr { addr } => {
@@ -669,14 +669,14 @@ impl VM {
                     self.update_register(0, input.into());
                 }
                 TrapCode::Out => {
-                    let content = self.value_from_register(0);
+                    let content = self.value_from_register(0)?;
                     let char_repr = Self::u16_to_char(content)?;
 
                     print!("{}", char_repr);
                     std::io::stdout().flush().expect("Hey");
                 }
                 TrapCode::Puts => {
-                    let mut addr = self.value_from_register(0);
+                    let mut addr = self.value_from_register(0)?;
                     let mut content = self.memory_read(addr);
 
                     while content != 0x0000 {
@@ -701,7 +701,7 @@ impl VM {
                     self.update_register(0, input.into());
                 }
                 TrapCode::Putsp => {
-                    let mut addr = self.value_from_register(0);
+                    let mut addr = self.value_from_register(0)?;
                     let mut content = self.memory_read(addr);
 
                     while content != 0x0000 {
