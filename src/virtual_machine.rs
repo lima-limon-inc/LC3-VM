@@ -563,10 +563,7 @@ impl VM {
                 let sr1_val = self.value_from_register(sr1);
                 let second_value = match second_arg {
                     Mode::Immediate { value } => value,
-                    Mode::Register { sr2 } => {
-                        let sr2_val = self.value_from_register(sr2);
-                        sr2_val
-                    }
+                    Mode::Register { sr2 } => self.value_from_register(sr2),
                 };
                 let result = second_value.wrapping_add(sr1_val);
 
@@ -594,10 +591,7 @@ impl VM {
                 let sr1_val = self.value_from_register(sr1);
                 let second_value = match second_arg {
                     Mode::Immediate { value } => value,
-                    Mode::Register { sr2 } => {
-                        let sr2_val = self.value_from_register(sr2);
-                        sr2_val
-                    }
+                    Mode::Register { sr2 } => self.value_from_register(sr2),
                 };
 
                 let result = sr1_val & second_value;
