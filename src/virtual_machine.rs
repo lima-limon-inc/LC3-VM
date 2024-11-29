@@ -756,14 +756,14 @@ mod test {
 
     #[test]
     fn check_memory_len() {
-        let vm = VM::new();
+        let vm = VM::new(false);
 
         assert_eq!(vm.memory.len(), 65536);
     }
 
     #[test]
     fn check_memory_add_operation_reg_mode() {
-        let vm = VM::new();
+        let vm = VM::new(false);
 
         //         ADD R2, R3, R1
         let op = 0b0001_0100_1100_0001;
@@ -781,7 +781,7 @@ mod test {
 
     #[test]
     fn check_memory_add_operation_imm_mode() {
-        let vm = VM::new();
+        let vm = VM::new(false);
 
         //         ADD R5, R7, 2
         let op = 0b0001_1011_1110_0010;
@@ -806,7 +806,7 @@ mod test {
     #[test]
     fn add_operation() {
         //         ADD R2, R3, R1
-        let mut vm = VM::new();
+        let mut vm = VM::new(false);
 
         let op = 0b0001010011000001;
         let operation = vm.decode_instruction(op);
@@ -822,7 +822,7 @@ mod test {
         let op = 0b0001101111100010;
         let operation = vm.decode_instruction(op);
 
-        let mut vm = VM::new();
+        let mut vm = VM::new(false);
         vm.r5 = 0;
         vm.r7 = 10;
         vm.execute(operation.unwrap());
@@ -832,7 +832,7 @@ mod test {
 
     #[test]
     fn and_test() {
-        let mut vm = VM::new();
+        let mut vm = VM::new(false);
 
         //         AND R1, R2, R4
         let op = 0b0101001010000100;
@@ -852,7 +852,7 @@ mod test {
 
     #[test]
     fn not_test() {
-        let mut vm = VM::new();
+        let mut vm = VM::new(false);
         // NOT R4, R5
         let op = 0b1001100101111111;
         let operation = vm.decode_instruction(op);
@@ -868,7 +868,7 @@ mod test {
     fn check_flags() {
         //This functions checks that the condition flags are correctly
         // set to negative, positive and zero when they should.
-        let mut vm = VM::new();
+        let mut vm = VM::new(false);
 
         //  ADDR  |  HEX  |      BINARY      |  LN  |  ASSEMBLY
         //        |       |                  |    1 |           .ORIG x3000
@@ -917,7 +917,7 @@ mod test {
         // x3002  | x2C04 | 0010110000000100 |    5 |           LD R6, 4
         // x3003  | xF025 | 1111000000100101 |    6 |           HALT
         //        |       |                  |    7 |           .END
-        let mut vm = VM::new();
+        let mut vm = VM::new(false);
 
         vm.load_program("examples/ld.obj").unwrap();
 
