@@ -220,7 +220,7 @@ impl VM {
                 println!("{:?}", self);
                 println!("Current instruction {:?}", operation);
                 println!("Press any key for next instruction");
-                let input: u16 = std::io::stdin()
+                let _: u16 = std::io::stdin()
                     .bytes()
                     .next()
                     .and_then(|result| result.ok())
