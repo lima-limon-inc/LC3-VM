@@ -655,8 +655,7 @@ impl VM {
                     let mut addr = self.value_from_register(0);
                     let mut content = self.memory_read(addr);
                     while content != 0x0000 {
-                        let c_char: u8 = content.try_into().expect("Unable to cast");
-                        let c_char: char = c_char.into();
+                        let c_char = Self::u16_to_char(content);
                         print!("{}", c_char);
                         addr = addr.wrapping_add(1);
                         content = self.memory_read(addr);
