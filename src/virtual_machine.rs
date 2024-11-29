@@ -40,6 +40,7 @@ pub struct VM {
     rpc: u16,
     rcond: FL,
     running: bool,
+    debug: bool,
 }
 
 #[derive(PartialEq, Debug)]
@@ -191,7 +192,7 @@ impl fmt::Debug for VM {
 }
 
 impl VM {
-    pub fn new() -> VM {
+    pub fn new(debug: bool) -> VM {
         let memory = [0; MEMORY_MAX];
         VM {
             memory,
@@ -206,6 +207,7 @@ impl VM {
             rpc: 0x3000,
             rcond: FL::ZRO,
             running: false,
+            debug,
         }
     }
 
@@ -227,7 +229,7 @@ impl VM {
             let instruction = self.load_instruction();
             self.rpc = self.rpc.wrapping_add(1);
             let operation = self.decode_instruction(instruction)?;
-            if cfg!(debug_assertions) {
+            if self.debug {
                 print!("{}[2J", 27 as char);
                 println!("{:?}", self);
                 println!("Current instruction {:?}", operation);
