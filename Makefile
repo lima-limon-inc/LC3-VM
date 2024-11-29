@@ -8,6 +8,7 @@ compile:
 	./laser-comp -a $(PATH)
 
 build:
+	$(MAKE) -c laser/src
 	cargo build
 
 run:
