@@ -153,6 +153,10 @@ pub enum VMError {
     FileDoesNotExist(#[from] std::io::Error),
     #[error("Unrecognized operation code")]
     UnknownOperand,
+    #[error("Unrecognized operation mode")]
+    UnknownMode(u16),
+    #[error("Unrecognized trapcode")]
+    UnknownTrapcode(u16),
     #[error("unknown data store error")]
     Unknown,
 }
@@ -312,7 +316,6 @@ impl VM {
             0b0001 => {
                 let mode = (args & 0b0000_0000_0010_0000) >> 5;
 
-                test_print(format!("{:?}", mode).as_str());
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
@@ -323,7 +326,7 @@ impl VM {
                         let immediate = sign_extend(immediate, 5);
                         Mode::Immediate { value: immediate }
                     }
-                    _ => panic!("ERROR WHILST PARSING"),
+                    _ => return Err(VMError::UnknownMode(mode)),
                 };
 
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
@@ -340,7 +343,6 @@ impl VM {
             0b0101 => {
                 let mode = (args & 0b0000_0000_0010_0000) >> 5;
 
-                test_print(format!("{:?}", mode).as_str());
                 let second_arg = match mode {
                     0 => {
                         let dest_register = args & 0b0000_0000_0000_0111;
@@ -351,7 +353,7 @@ impl VM {
                         let immediate = sign_extend(immediate, 5);
                         Mode::Immediate { value: immediate }
                     }
-                    _ => panic!("ERROR WHILST PARSING"),
+                    _ => return Err(VMError::UnknownMode(mode)),
                 };
                 let dr = (args & 0b0000_1110_0000_0000) >> 9;
 
@@ -381,7 +383,7 @@ impl VM {
                         let offset = sign_extend(offset11, 11);
                         Mode::Immediate { value: offset }
                     }
-                    _ => panic!("ERROR WHILE PARSING"),
+                    _ => return Err(VMError::UnknownMode(mode)),
                 };
                 Ok(Opcode::Jsr { addr })
             }
@@ -461,7 +463,7 @@ impl VM {
                     0x23 => TrapCode::In,
                     0x24 => TrapCode::Putsp,
                     0x25 => TrapCode::Halt,
-                    _ => panic!("Non existant trap code"),
+                    _ => return Err(VMError::UnknownTrapcode(trapcode)),
                 };
                 Ok(Opcode::Trap { code })
             }
