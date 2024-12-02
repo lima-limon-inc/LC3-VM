@@ -2,8 +2,7 @@ use std::env;
 
 mod virtual_machine;
 
-use crate::virtual_machine::VMError;
-use crate::virtual_machine::VM;
+use crate::virtual_machine::cpu::VM;
 use thiserror::Error;
 
 #[derive(Error, Debug)]
