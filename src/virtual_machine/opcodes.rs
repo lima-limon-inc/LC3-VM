@@ -113,7 +113,7 @@ pub enum OperandError {
 }
 
 impl Opcode {
-    fn decode_instruction(&self, binary_repr: u16) -> Result<Opcode, OperandError> {
+    pub fn decode_instruction(binary_repr: u16) -> Result<Opcode, OperandError> {
         // Removes the arguments from the instruction, leaving only the operator
         let op = binary_repr >> ARG_SIZE;
         // Removes the operator from the instruction, leaving only the arguments

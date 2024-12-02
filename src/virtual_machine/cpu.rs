@@ -115,13 +115,13 @@ impl VM {
         Ok(c_char)
     }
 
-    pub fn run(&mut self) -> Result<(), VMError> {
+    pub fn run(&mut self) -> Result<(), Box<dyn std::error::Error>> {
         self.running = true;
 
         while self.running {
             let instruction = self.load_instruction()?;
             self.rpc = self.rpc.wrapping_add(1);
-            let operation = self.decode_instruction(instruction)?;
+            let operation = Opcode::decode_instruction(instruction)?;
             if self.debug {
                 print!("{}[2J", 27 as char);
                 println!("{:?}", self);
