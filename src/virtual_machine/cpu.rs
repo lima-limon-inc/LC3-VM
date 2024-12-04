@@ -433,8 +433,12 @@ impl VM {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::*;
+    use crate::virtual_machine::opcodes::Mode;
+    use crate::virtual_machine::opcodes::Opcode as Operand;
+    use crate::virtual_machine::opcodes::TrapCode;
 
     #[test]
     fn check_memory_len() {
@@ -444,12 +448,12 @@ mod test {
     }
 
     #[test]
-    fn check_memory_add_operation_reg_mode() {
+    pub(crate) fn check_memory_add_operation_reg_mode() {
         let vm = VM::new(false);
 
         //         ADD R2, R3, R1
         let op = 0b0001_0100_1100_0001;
-        let result = vm.decode_instruction(op);
+        let result = Operand::decode_instruction(op);
 
         assert_eq!(
             Opcode::Add {
@@ -467,7 +471,7 @@ mod test {
 
         //         ADD R5, R7, 2
         let op = 0b0001_1011_1110_0010;
-        let result = vm.decode_instruction(op);
+        let result = Operand::decode_instruction(op);
 
         assert_eq!(
             Opcode::Add {
@@ -485,7 +489,7 @@ mod test {
         let mut vm = VM::new(false);
 
         let op = 0b0001010011000001;
-        let operation = vm.decode_instruction(op);
+        let operation = Operand::decode_instruction(op);
 
         vm.r2 = 0;
         vm.r3 = 10;
@@ -496,7 +500,7 @@ mod test {
 
         //         ADD R5, R7, 2
         let op = 0b0001101111100010;
-        let operation = vm.decode_instruction(op);
+        let operation = Operand::decode_instruction(op);
 
         let mut vm = VM::new(false);
         vm.r5 = 0;
@@ -512,7 +516,7 @@ mod test {
 
         //         AND R1, R2, R4
         let op = 0b0101001010000100;
-        let operation = vm.decode_instruction(op);
+        let operation = Operand::decode_instruction(op);
         vm.r1 = 0;
         vm.r2 = 10;
         vm.r4 = 12;
@@ -531,7 +535,7 @@ mod test {
         let mut vm = VM::new(false);
         // NOT R4, R5
         let op = 0b1001100101111111;
-        let operation = vm.decode_instruction(op);
+        let operation = Operand::decode_instruction(op);
 
         vm.r5 = 10;
 
@@ -569,15 +573,15 @@ mod test {
         .iter();
 
         // This is only done to for testing purposes
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
+        vm.execute(Operand::decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::NEG);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
+        vm.execute(Operand::decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::POS);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
+        vm.execute(Operand::decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::ZRO);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
+        vm.execute(Operand::decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::NEG);
-        vm.execute(vm.decode_instruction(*operations.next().unwrap()).unwrap());
+        vm.execute(Operand::decode_instruction(*operations.next().unwrap()).unwrap());
         assert_eq!(vm.rcond, FL::POS);
     }
 
